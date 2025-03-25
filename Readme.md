@@ -87,9 +87,12 @@ All while simulating realistic human behaviors through natural mouse movements, 
 See our AI Browser Agent in action through these demonstration videos:
 
 ### Demo 1: Basic Web Navigation
-https://github.com/rkvalandas/browsera_agent/demos/demo.mp4
-
-*Watch how the agent navigates to websites and extracts information using natural language instructions.*
+<iframe width="640" height="360" 
+  src="https://www.youtube.com/embed/Xp3w5H4-pOw" 
+  frameborder="0" 
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+  allowfullscreen>
+</iframe>
 
 *Watch how the agent navigates to websites and extracts information.*
 
