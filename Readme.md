@@ -34,8 +34,8 @@ All while simulating realistic human behaviors through natural mouse movements, 
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/ai_browser.git
-   cd ai_browser
+   git clone https://github.com/rkvalandas/browser_agent.git
+   cd browser_agent
    ```
 
 2. **Set up a virtual environment (recommended)**
