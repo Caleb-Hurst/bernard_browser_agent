@@ -1,0 +1,10 @@
+# Core libraries
+langchain>=0.0.267
+langchain-groq>=0.1.0
+playwright>=1.40.0
+
+# Optional LLM providers (uncomment as needed)
+# langchain-openai>=0.0.2
+
+# Utilities
+python-dotenv>=1.0.0
