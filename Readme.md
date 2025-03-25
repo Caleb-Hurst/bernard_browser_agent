@@ -87,12 +87,7 @@ All while simulating realistic human behaviors through natural mouse movements, 
 See our AI Browser Agent in action through these demonstration videos:
 
 ### Demo 1: Basic Web Navigation
-<iframe width="640" height="360" 
-  src="https://www.youtube.com/embed/Xp3w5H4-pOw" 
-  frameborder="0" 
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-  allowfullscreen>
-</iframe>
+[![AI Browser Navigation Demo](https://img.youtube.com/vi/Xp3w5H4-pOw/0.jpg)](https://www.youtube.com/embed/Xp3w5H4-pOw "Click to Watch Demo")
 
 *Watch how the agent navigates to websites and extracts information.*
 
