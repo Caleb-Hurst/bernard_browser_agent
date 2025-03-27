@@ -1,16 +1,15 @@
-# AI Browser Automation Agent
+# Browser Agent: AI Agent that Controls Browser and Performs Tasks
 
-A sophisticated browser automation tool powered by AI that navigates and interacts with websites using human-like behaviors. Combining Playwright, LangChain, and Large Language Models, this agent understands natural language instructions and executes complex web tasks automatically.
+A smart AI agent designed to control your browser and execute tasks based on natural language instructions. Built on Playwright, LangChain, and advanced LLMs, this agent combines intelligent decision-making with human-like interaction to navigate websites, analyze page content, and perform a wide range of tasks.
 
 ## 🌟 Overview
 
-This project creates an AI agent that can:
+Browser Agent empowers you to:
 - Navigate websites autonomously
-- Interact with page elements using virtual cursor movements
-- Interpret page content and structure
-- Execute search queries
-- Fill forms and click buttons
-- Scroll and analyze page elements
+- Interact with page elements via realistic cursor movements
+- Interpret page content and structure with advanced DOM analysis
+- Execute search queries, fill forms, click buttons, and scroll pages
+- Perform any browser-based task given by the user
 
 All while simulating realistic human behaviors through natural mouse movements, typing patterns, and interaction timing.
 
@@ -27,7 +26,7 @@ All while simulating realistic human behaviors through natural mouse movements, 
 
 - Python 3.9+
 - Chrome browser installed
-- Groq API key (for LLM capabilities)
+- OpenAI or Groq API key (for LLM capabilities)
 - Playwright-compatible OS (Windows, macOS, Linux)
 
 ## 📋 Installation
@@ -115,39 +114,6 @@ BROWSER_CONNECTION = {
 }
 ```
 
-### Using with Running Chrome Instance
-
-To connect to an existing Chrome browser:
-
-1. Launch Chrome with remote debugging enabled:
-
-   **On macOS:**
-   ```bash
-   open -a "Google Chrome" --args --remote-debugging-port=9222
-   ```
-
-   **On Windows:**
-   ```bash
-   "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
-   ```
-   or
-   ```bash
-   start chrome --remote-debugging-port=9222
-   ```
-
-   **On Linux:**
-   ```bash
-   google-chrome --remote-debugging-port=9222
-   ```
-
-2. Set `use_existing: True` in [`config.py`](config.py ) (already set by default)
-
-3. Run the application normally:
-   ```bash
-   python main.py
-   ```
-
-4. The agent will connect to your existing Chrome session instead of launching a new browser window
 
 ## 🧩 Architecture
 

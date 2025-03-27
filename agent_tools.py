@@ -20,24 +20,19 @@ def create_browser_tools(controller):
             description="Analyze the page's structure and content using DOM traversal. Returns a comprehensive structured report that includes: 1) Page metadata (title, URL), 2) Interactive elements organized by type with IDs and descriptions, and 3) Text content hierarchically organized by headings, paragraphs and other content types. The output is formatted for easy reading and reference. No input needed."
         ),
         Tool(
-            name="Type",
-            func=lambda text: controller.type_text(text.strip("'\"").strip()),
-            description="Type text character by character with realistic human timing. Input: text to type (string)."
+            name="Keyboard",
+            func=lambda input_text: controller.keyboard_action(input_text),
+            description="Perform keyboard actions including typing text, pressing special keys, and key combinations. Supports sequences using commas (e.g., 'tab, tab, enter'). Input can be text to type or special keys like 'enter', 'tab', 'backspace', 'escape', 'f1-f12', 'pageup', 'pagedown', 'home', 'end', and combinations like 'ctrl+a', 'shift+tab', 'ctrl+enter', etc. Mac users can use 'cmd+' instead of 'ctrl+'. Also supports 'hold shift, press tab' patterns."
         ),
         Tool(
-            name="PressEnter",
-            func=lambda *args: controller.press_enter(),
-            description="Press the Enter key. Important: You must include 'Action Input:' line after 'Action: PressEnter', but leave it empty as this tool does not require any input."
+            name="GoBack",
+            func=lambda *args: controller.go_back(),
+            description="Navigate back to the previous page in browser history. No input needed. Use this to return to the previous page after navigation."
         ),
         Tool(
             name="Scroll",
             func=lambda direction="down": controller.scroll(direction),
             description="Scroll the page with virtual mouse wheel. Input: direction ('up', 'down', 'top', or 'bottom')."
-        ),
-        Tool(
-            name="Type",
-            func=lambda text: controller.type_text(text.strip("'\"").strip()),
-            description="Type text character by character with realistic human timing. Input: text to type (string)."
         ),
         Tool(
             name="GoogleSearch",

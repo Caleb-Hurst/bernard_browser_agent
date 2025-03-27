@@ -1099,6 +1099,158 @@ class VirtualBrowserController:
             self._virtual_click(x, y)
             return f"Click attempted with errors: {str(e)}"
 
+    def keyboard_action(self, input_text):
+        """Handle keyboard actions including typing text and pressing special keys."""
+        try:
+            # Check if this is a special key command
+            special_keys = {
+                # Basic navigation keys
+                "enter": "Enter",
+                "tab": "Tab",
+                "shift+tab": "Shift+Tab",
+                "backspace": "Backspace",
+                "escape": "Escape", "esc": "Escape",
+                "delete": "Delete", "del": "Delete",
+                "space": " ",
+                
+                # Arrow keys
+                "up": "ArrowUp",
+                "down": "ArrowDown",
+                "left": "ArrowLeft",
+                "right": "ArrowRight",
+                
+                # Common shortcuts
+                "ctrl+a": "Control+a", "cmd+a": "Meta+a",
+                "ctrl+c": "Control+c", "cmd+c": "Meta+c",
+                "ctrl+v": "Control+v", "cmd+v": "Meta+v",
+                "ctrl+x": "Control+x", "cmd+x": "Meta+x",
+                "ctrl+z": "Control+z", "cmd+z": "Meta+z",
+                "ctrl+y": "Control+y", "cmd+y": "Meta+y",
+                "ctrl+f": "Control+f", "cmd+f": "Meta+f",
+                
+                # Function keys
+                "f1": "F1", "f2": "F2", "f3": "F3", "f4": "F4",
+                "f5": "F5", "f6": "F6", "f7": "F7", "f8": "F8",
+                "f9": "F9", "f10": "F10", "f11": "F11", "f12": "F12",
+                
+                # Navigation shortcuts
+                "home": "Home",
+                "end": "End",
+                "pageup": "PageUp",
+                "pagedown": "PageDown",
+                
+                # Special combinations
+                "alt+tab": "Alt+Tab",
+                "ctrl+enter": "Control+Enter", "cmd+enter": "Meta+Enter",
+                "ctrl+home": "Control+Home", "cmd+home": "Meta+Home",
+                "ctrl+end": "Control+End", "cmd+end": "Meta+End",
+                
+                # Web-specific
+                "ctrl+t": "Control+t", "cmd+t": "Meta+t",  # New tab
+                "ctrl+w": "Control+w", "cmd+w": "Meta+w",  # Close tab
+                "ctrl+r": "Control+r", "cmd+r": "Meta+r",  # Reload
+            }
+            
+            # Clean input
+            if isinstance(input_text, str):
+                input_text = input_text.strip("'\"").strip()
+            
+            # Handle multiple key sequence if separated by commas or semicolons
+            if "," in input_text or ";" in input_text:
+                key_sequence = re.split(r'[,;]', input_text)
+                results = []
+                
+                for single_key in key_sequence:
+                    single_key = single_key.strip().lower()
+                    result = self._execute_single_key_action(single_key, special_keys)
+                    results.append(result)
+                    time.sleep(0.3)  # Brief pause between keys
+                
+                return "Executed key sequence: " + " → ".join(results)
+            else:
+                # Single key/text handling
+                normalized_input = input_text.lower()
+                return self._execute_single_key_action(normalized_input, special_keys)
+                
+        except Exception as e:
+            return f"Error with keyboard action: {str(e)}"
+
+    def _execute_single_key_action(self, key_input, special_keys):
+        """Execute a single key action (helper for keyboard_action)."""
+        if key_input in special_keys:
+            key = special_keys[key_input]
+            print(f"Pressing special key: {key}")
+            time.sleep(0.2)
+            
+            # Handle special case for space
+            if key == " ":
+                self.page.keyboard.press("Space")
+            else:
+                self.page.keyboard.press(key)
+                
+            time.sleep(0.3)
+            return f"Pressed {key_input}"
+        
+        # Handle hold-and-press patterns like "hold shift, press tab"
+        hold_match = re.match(r'hold\s+(\w+),?\s+(?:press\s+)?(\w+)', key_input)
+        if hold_match:
+            modifier, key = hold_match.groups()
+            modifier_key = special_keys.get(modifier.lower(), modifier.capitalize())
+            key_to_press = special_keys.get(key.lower(), key.capitalize())
+            
+            print(f"Holding {modifier_key} and pressing {key_to_press}")
+            self.page.keyboard.down(modifier_key)
+            time.sleep(0.3)
+            self.page.keyboard.press(key_to_press)
+            time.sleep(0.2)
+            self.page.keyboard.up(modifier_key)
+            
+            return f"Held {modifier} and pressed {key}"
+        
+        # Otherwise treat as text to type
+        self._virtual_type(key_input)
+        return f"Typed '{key_input}'"
+
+
+    def go_back(self):
+        """Navigate back to the previous page in browser history."""
+        try:
+            # Store current URL to verify navigation
+            current_url = self.page.url
+            
+            # Check if we can go back
+            can_go_back = self.page.evaluate("() => window.history.length > 1")
+            
+            if not can_go_back:
+                return "Cannot go back - no previous page in history"
+            
+            print("Navigating back to previous page...")
+            
+            # Try using browser back button first (most reliable)
+            self.page.go_back(wait_until="domcontentloaded", timeout=10000)
+            
+            # Wait for navigation to complete
+            time.sleep(1.5)
+            
+            # Verify we actually navigated to a different page
+            new_url = self.page.url
+            if new_url == current_url:
+                # If URL didn't change, try alternative method
+                print("Back navigation didn't change URL, trying alternative method...")
+                self.page.evaluate("() => window.history.back()")
+                time.sleep(1.5)
+                new_url = self.page.url
+            
+            # Final verification
+            if new_url != current_url:
+                print(f"Successfully navigated back to: {new_url}")
+                return f"Navigated back to previous page: {new_url}"
+            else:
+                return "Back navigation attempted but URL remains unchanged"
+                
+        except Exception as e:
+            print(f"Error navigating back: {str(e)}")
+            return f"Error navigating back: {str(e)}"
 
     def navigate(self, url):
         """
@@ -1126,8 +1278,6 @@ class VirtualBrowserController:
                 print(f"Trying direct navigation to {url}")
                 self.page.goto(url, timeout=20000)
                 current_url = self.page.url
-            
-            # Rest of the method remains unchanged...
                 
                 # Check if navigation was successful
                 if not (current_url.startswith("http") and not "about:blank" in current_url):
@@ -1142,26 +1292,7 @@ class VirtualBrowserController:
         except Exception as e:
             print(f"Critical navigation error: {e}")
             return f"Error navigating to {url}: {str(e)}"
-
-
-    def type_text(self, text):
-        """Type text character by character with realistic human timing."""
-        try:
-            # Type each character with realistic timing
-            self._virtual_type(text)
-            return f"Typed '{text}' character by character"
-        except Exception as e:
-            return f"Error typing text: {str(e)}"
-
-    def press_enter(self, *args, **kwargs):
-        """Press the Enter key."""
-        try:
-            time.sleep(0.3)
-            self.page.keyboard.press("Enter")
-            time.sleep(0.5)
-            return "Pressed Enter key"
-        except Exception as e:
-            return f"Error pressing Enter: {str(e)}"
+        
 
     def scroll(self, direction="down"):
         """Scroll the page with visible virtual mouse wheel movement."""

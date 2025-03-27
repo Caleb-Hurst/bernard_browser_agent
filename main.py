@@ -1,22 +1,40 @@
 import time
 import traceback
-from config import OPENAI_API_KEY, BROWSER_OPTIONS, BROWSER_CONNECTION
+from config import GROQ_API_KEY, BROWSER_OPTIONS, BROWSER_CONNECTION
 from browser_setup import initialize_browser, close_browser
 from browser_controller import VirtualBrowserController
 from agent_tools import create_browser_tools
 from agent import create_agent
+from chrome_launcher import launch_chrome_with_debugging
 
 def main():
     """Main entry point for the browser automation agent."""
     try:
+        # Step 1: Automatically launch Chrome with remote debugging if needed
+        if BROWSER_CONNECTION.get("use_existing", False):
+            port = 9222  # Default port
+            # Extract port from cdp_endpoint if specified
+            if "cdp_endpoint" in BROWSER_CONNECTION:
+                try:
+                    endpoint = BROWSER_CONNECTION["cdp_endpoint"]
+                    port = int(endpoint.split(":")[-1])
+                except (ValueError, IndexError):
+                    pass
+                    
+            print("Ensuring Chrome is running with remote debugging...")
+            chrome_launched = launch_chrome_with_debugging(port)
+            if not chrome_launched and not BROWSER_CONNECTION.get("fallback_to_new", True):
+                print("❌ Failed to launch Chrome with debugging and fallback is disabled")
+                return
         
-        # Initialize browser with connection options
+        # Step 2: Initialize browser with connection options
         print("Initializing browser...")
         playwright, browser, page = initialize_browser(BROWSER_OPTIONS, BROWSER_CONNECTION)
 
         # Track connection state
-        using_connected_browser = False
+        using_connected_browser = BROWSER_CONNECTION.get("use_existing", False)
         
+        # Rest of your code remains the same
         # Initialize browser controller
         print("Setting up virtual browser controller...")
         controller = VirtualBrowserController(page)
@@ -28,7 +46,7 @@ def main():
         # Create the agent with better error handling
         print("Creating agent with tools...")
         try:
-            agent_executor = create_agent(tools, OPENAI_API_KEY)
+            agent_executor = create_agent(tools, GROQ_API_KEY)
             print("Agent created successfully!")
         except Exception as agent_error:
             print(f"\n❌ ERROR CREATING AGENT: {str(agent_error)}")
