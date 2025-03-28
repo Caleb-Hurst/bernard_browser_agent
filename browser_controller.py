@@ -312,8 +312,8 @@ class VirtualBrowserController:
             # Format the result and limit length
             formatted_result = "\n".join(result).strip()
             
-            if len(formatted_result) > 4000:
-                return formatted_result[:4000] + "\n...content truncated..."
+            # if len(formatted_result) > 4000:
+            #     return formatted_result[:4000] + "\n...content truncated..."
             
             return formatted_result
             
