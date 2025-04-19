@@ -1,13 +1,13 @@
+import asyncio
 import time
 import traceback
-from config import GROQ_API_KEY, BROWSER_OPTIONS, BROWSER_CONNECTION
+from config import OPENAI_API_KEY, BROWSER_OPTIONS, BROWSER_CONNECTION
 from browser_setup import initialize_browser, close_browser
-from browser_controller import VirtualBrowserController
-from agent_tools import create_browser_tools
+from browser_controller import initialize, get_browser_tools
 from agent import create_agent
 from chrome_launcher import launch_chrome_with_debugging
 
-def main():
+async def main():
     """Main entry point for the browser automation agent."""
     try:
         # Step 1: Automatically launch Chrome with remote debugging if needed
@@ -29,24 +29,20 @@ def main():
         
         # Step 2: Initialize browser with connection options
         print("Initializing browser...")
-        playwright, browser, page = initialize_browser(BROWSER_OPTIONS, BROWSER_CONNECTION)
+        playwright, browser, page = await initialize_browser(BROWSER_OPTIONS, BROWSER_CONNECTION)
 
         # Track connection state
         using_connected_browser = BROWSER_CONNECTION.get("use_existing", False)
         
-        # Rest of your code remains the same
         # Initialize browser controller
         print("Setting up virtual browser controller...")
-        controller = VirtualBrowserController(page)
+        await initialize(page)
         
-        # Create LangChain tools
-        print("Creating tools...")
-        tools = create_browser_tools(controller)
         
-        # Create the agent with better error handling
+        # Create the agent with better error handling (now async)
         print("Creating agent with tools...")
         try:
-            agent_executor = create_agent(tools, GROQ_API_KEY)
+            agent_executor = await create_agent(OPENAI_API_KEY)
             print("Agent created successfully!")
         except Exception as agent_error:
             print(f"\n❌ ERROR CREATING AGENT: {str(agent_error)}")
@@ -69,7 +65,8 @@ def main():
             start_time = time.time()
             
             try:
-                response = agent_executor.invoke({"input": user_query})
+                # Our LangGraph agent now has async capabilities
+                response = await agent_executor.ainvoke(user_query)
                 end_time = time.time()
                 
                 # Print results
@@ -105,9 +102,10 @@ def main():
             if close_input.lower() == 'y':
                 # Cleanup with appropriate mode
                 print("Cleaning up browser resources...")
-                close_browser(playwright, browser, is_connected=using_connected_browser)
+                await close_browser(playwright, browser, is_connected=using_connected_browser)
             else:
                 print("Browser left open. You can close it manually.")
 
 if __name__ == "__main__":
-    main()
+    # Run the async main function
+    asyncio.run(main())

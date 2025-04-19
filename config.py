@@ -6,7 +6,7 @@ load_dotenv()
 
 # Get API Keys from environment variables
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-# GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # Set environment variables for libraries that need them directly
 if OPENAI_API_KEY:

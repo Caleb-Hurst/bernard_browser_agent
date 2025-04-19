@@ -1,7 +1,7 @@
 import random
-import time
+import asyncio
 
-def natural_mouse_move(page, current_x, current_y, target_x, target_y):
+async def natural_mouse_move(page, current_x, current_y, target_x, target_y):
     """Move the virtual mouse in a natural way, simulating human movement."""
     # Calculate distance
     distance = ((target_x - current_x) ** 2 + (target_y - current_y) ** 2) ** 0.5
@@ -24,17 +24,17 @@ def natural_mouse_move(page, current_x, current_y, target_x, target_y):
     
     return path_points
 
-def update_cursor(page, x, y):
+async def update_cursor(page, x, y):
     """Update the virtual cursor position in the browser."""
     # Update cursor visually in browser
-    page.evaluate(f"window.updateAICursor({x}, {y})")
+    await page.evaluate(f"window.updateAICursor({x}, {y})")
     # Also update the actual Playwright mouse position (but not the system cursor)
-    page.mouse.move(x, y)
+    await page.mouse.move(x, y)
 
-def virtual_click(page, current_x, current_y):
+async def virtual_click(page, current_x, current_y):
     """Click with the virtual cursor."""
     # Change cursor appearance to indicate clicking
-    page.evaluate("""
+    await page.evaluate("""
         () => {
             const cursor = document.getElementById('ai-agent-cursor');
             if (cursor) {
@@ -47,7 +47,7 @@ def virtual_click(page, current_x, current_y):
     """)
 
     # Execute DOM click via JavaScript with special handling for input fields
-    click_result = page.evaluate("""
+    click_result = await page.evaluate("""
         ({x, y}) => {
             // Calculate viewport-relative coordinates
             const viewX = x - window.pageXOffset;
@@ -121,9 +121,9 @@ def virtual_click(page, current_x, current_y):
     """, {"x": current_x, "y": current_y})
     
     print(f"DOM click result: {click_result}")
-    time.sleep(0.3)  # Wait for click to register
+    await asyncio.sleep(0.3)  # Wait for click to register
 
-def virtual_type(page, text):
+async def virtual_type(page, text):
     """Type text character by character with realistic timing."""
     for char in text:
         # Different delay based on character type
@@ -135,5 +135,5 @@ def virtual_type(page, text):
             delay = random.uniform(0.03, 0.1)  # Normal typing speed
         
         # Type the correct character
-        page.keyboard.type(char)
-        time.sleep(delay)
+        await page.keyboard.type(char)
+        await asyncio.sleep(delay)
