@@ -1,11 +1,11 @@
 import asyncio
 import time
 import traceback
-from config import OPENAI_API_KEY, BROWSER_OPTIONS, BROWSER_CONNECTION
-from browser_setup import initialize_browser, close_browser
-from browser_controller import initialize, get_browser_tools
-from agent import create_agent
-from chrome_launcher import launch_chrome_with_debugging
+from configurations.config import OPENAI_API_KEY, BROWSER_OPTIONS, BROWSER_CONNECTION
+from browser.browser_setup import initialize_browser, close_browser
+from browser.controllers.browser_controller import initialize
+from agent.agent import create_agent
+from cli.chrome_launcher import launch_chrome_with_debugging
 
 async def main():
     """Main entry point for the browser automation agent."""
@@ -75,6 +75,7 @@ async def main():
                 print("="*50)
                 print(response.get("output", "No output received"))
                 print("="*50)
+                print("Agent response:")
                 
                 # Ask if user wants to continue
                 continue_input = input("\nContinue with another task? (y/n): ")
