@@ -8,9 +8,7 @@ import random
 import json
 from langchain_core.tools import tool
 
-from browser.utils.dom_helpers import (
-    _parse_click_target, _find_element, _scroll_element_into_view
-)
+from browser.utils.dom_helpers import _parse_click_target, _scroll_element_into_view
 from browser.navigation.scroll_manager import scroll
 
 # Global variables
@@ -37,7 +35,7 @@ async def initialize(browser_page):
     await _update_cursor(current_x, current_y)
 
 @tool
-async def click(target_description):
+async def click(target_description) -> str:
     """
     Simulates a natural human-like click on any webpage element with precise targeting.
     
@@ -59,7 +57,6 @@ async def click(target_description):
     Returns: Confirmation message or error details if element couldn't be found/clicked.
     """
     try:
-        await asyncio.sleep(0.8) 
         print(f"Attempting visual click for: {target_description}")
         
         # Import page_elements from the analyzer
@@ -82,18 +79,98 @@ async def click(target_description):
             except (ValueError, TypeError):
                 element = None
         
-        # If direct access failed or wasn't available, use traditional search
-        if not element:
-            print(f"Element ID {target_id} not found, trying traditional search")
-            # Find matching element using unified selection logic
-            element = await _find_element(target_type, target_text, is_structured, target_description=target_description)
+        # If direct access failed or wasn't available, search in page_elements
+        if not element and page_elements:
+            print(f"Element ID {target_id} not found, searching in page elements")
+            # Search for matching elements in page_elements
+            matching_elements = []
+            
+            for idx, elem in enumerate(page_elements):
+                elem_type = elem.get('type', '').lower()
+                elem_text = elem.get('text', '').lower() if elem.get('text') else ''
+                elem_tag = elem.get('tagName', '').lower()
+                
+                # Match by type/tag and text if provided
+                type_match = False
+                if target_type:
+                    type_match = (
+                        target_type == elem_type or 
+                        target_type == elem_tag or
+                        (target_type == 'button' and (
+                            elem_tag == 'button' or 
+                            elem_type == 'button' or 
+                            'btn' in (elem.get('className', '') or '')
+                        ))
+                    )
+                else:
+                    type_match = True  # No type constraint
+                    
+                text_match = False
+                if target_text:
+                    text_match = (
+                        target_text.lower() in elem_text or
+                        (elem.get('attributes', {}).get('value', '').lower() or '') == target_text.lower() or
+                        (elem.get('attributes', {}).get('placeholder', '').lower() or '') == target_text.lower() or
+                        (elem.get('attributes', {}).get('aria-label', '').lower() or '') == target_text.lower()
+                    )
+                else:
+                    text_match = True  # No text constraint
+                    
+                if type_match and text_match:
+                    matching_elements.append(elem)
+            
+            # Prioritize elements that are in viewport and visible
+            visible_elements = [e for e in matching_elements if e.get('visible', False) and e.get('inViewport', False)]
+            if visible_elements:
+                element = visible_elements[0]  # Take the first visible matching element
+            elif matching_elements:
+                element = matching_elements[0]  # Take any matching element if none visible
         
         # If no element found, try scrolling and searching again
-        if not element:
+        if not element and page_elements:
             print("No matching element found. Attempting to scroll and search...")
             await scroll("down")
             await asyncio.sleep(1)
-            element = await _find_element(target_type, target_text, is_structured, relaxed=True)
+            
+            # Re-analyze the page after scrolling
+            from browser.analyzers.page_analyzer import analyze_page
+            await analyze_page()
+            
+            # Search again in the updated page_elements
+            for idx, elem in enumerate(page_elements):
+                elem_type = elem.get('type', '').lower()
+                elem_text = elem.get('text', '').lower() if elem.get('text') else ''
+                elem_tag = elem.get('tagName', '').lower()
+                
+                # Match by type/tag and text if provided
+                type_match = False
+                if target_type:
+                    type_match = (
+                        target_type == elem_type or 
+                        target_type == elem_tag or
+                        (target_type == 'button' and (
+                            elem_tag == 'button' or 
+                            elem_type == 'button' or 
+                            'btn' in (elem.get('className', '') or '')
+                        ))
+                    )
+                else:
+                    type_match = True  # No type constraint
+                    
+                text_match = False
+                if target_text:
+                    text_match = (
+                        target_text.lower() in elem_text or
+                        (elem.get('attributes', {}).get('value', '').lower() or '') == target_text.lower() or
+                        (elem.get('attributes', {}).get('placeholder', '').lower() or '') == target_text.lower() or
+                        (elem.get('attributes', {}).get('aria-label', '').lower() or '') == target_text.lower()
+                    )
+                else:
+                    text_match = True  # No text constraint
+                    
+                if type_match and text_match:
+                    element = elem
+                    break
         
         # If still no matching element, return error
         if not element:
@@ -108,14 +185,13 @@ async def click(target_description):
         # Ensure element is visible in viewport (scroll if needed)
         if not element.get('inViewport', False):
             await _scroll_element_into_view(element)
-            await asyncio.sleep(0.8)  # Wait for scroll to complete
         
         # Move cursor to element for visual feedback before clicking
         x, y = element['center_x'], element['center_y']
         await _natural_mouse_move(x, y)
         
         # Perform click
-        result = await _perform_click(element)
+        result = await _click(x, y)
         
         return f"Clicked on element: {element['type']} with text '{element['text']}'"
         
@@ -196,12 +272,6 @@ async def fill_input(json_input):
                     element = None
             except (ValueError, TypeError):
                 element = None
-        
-        # If direct access failed or wasn't available, use traditional search
-        if not element:
-            print(f"Element ID {parsed_id} not found, trying traditional search")
-            # Find matching element using unified selection logic
-            element = await _find_element(parsed_type, parsed_text, is_structured, target_description=target_description)
     
         
         # If still no matching element, return error
@@ -316,8 +386,8 @@ async def fill_input(json_input):
                                 }
                             }
                             
-                            // Blur at the end to trigger any onBlur validation
-                            element.blur();
+                            // Don't blur at the end - keep the element focused
+                            // element.blur();
                             
                             return { success: true, method: 'dom_manipulation' };
                         } else if (element.isContentEditable) {
@@ -339,7 +409,8 @@ async def fill_input(json_input):
                                 }
                                 
                                 element.dispatchEvent(new Event('input', { bubbles: true }));
-                                element.blur();
+                                // Don't blur the element to keep it focused
+                                // element.blur();
                                 return { success: true, method: 'contentEditable' };
                             } catch (innerError) {
                                 return { success: false, error: 'Failed to set content: ' + innerError.toString() };
@@ -358,7 +429,6 @@ async def fill_input(json_input):
                 # Fallback to standard Playwright fill method
                 await page.fill(selector, value)
                 
-            await asyncio.sleep(0.5)  # Small pause after filling
             
             return f"Filled input field: {element['type']} with text '{element['text']}' with value: '{value}'"
         except Exception as e:
@@ -450,18 +520,98 @@ async def select_option(json_input):
             except (ValueError, TypeError):
                 element = None
         
-        # If direct access failed or wasn't available, use traditional search
-        if not element:
-            print(f"Element ID {parsed_id} not found, trying traditional search")
-            # Find matching element using unified selection logic
-            element = await _find_element(parsed_type, parsed_text, is_structured, target_description=target_description)
+        # If direct access failed or wasn't available, search in page_elements
+        if not element and page_elements:
+            print(f"Element ID {parsed_id} not found, searching in page elements")
+            # Search for matching elements in page_elements
+            matching_elements = []
+            
+            for idx, elem in enumerate(page_elements):
+                elem_type = elem.get('type', '').lower()
+                elem_text = elem.get('text', '').lower() if elem.get('text') else ''
+                elem_tag = elem.get('tagName', '').lower()
+                
+                # Match by type/tag and text if provided
+                type_match = False
+                if parsed_type:
+                    type_match = (
+                        parsed_type == elem_type or 
+                        parsed_type == elem_tag or
+                        (parsed_type == 'dropdown' and (
+                            elem_tag == 'select' or 
+                            elem_type == 'dropdown' or 
+                            elem.get('attributes', {}).get('role', '') == 'listbox'
+                        ))
+                    )
+                else:
+                    type_match = True  # No type constraint
+                    
+                text_match = False
+                if parsed_text:
+                    text_match = (
+                        parsed_text.lower() in elem_text or
+                        (elem.get('attributes', {}).get('value', '').lower() or '') == parsed_text.lower() or
+                        (elem.get('attributes', {}).get('placeholder', '').lower() or '') == parsed_text.lower() or
+                        (elem.get('attributes', {}).get('aria-label', '').lower() or '') == parsed_text.lower()
+                    )
+                else:
+                    text_match = True  # No text constraint
+                    
+                if type_match and text_match:
+                    matching_elements.append(elem)
+            
+            # Prioritize elements that are in viewport and visible
+            visible_elements = [e for e in matching_elements if e.get('visible', False) and e.get('inViewport', False)]
+            if visible_elements:
+                element = visible_elements[0]  # Take the first visible matching element
+            elif matching_elements:
+                element = matching_elements[0]  # Take any matching element if none visible
         
         # If no element found, try scrolling and searching again
-        if not element:
+        if not element and page_elements:
             print("No matching element found. Attempting to scroll and search...")
             await scroll("down")
             await asyncio.sleep(1)
-            element = await _find_element(parsed_type, parsed_text, is_structured, relaxed=True)
+            
+            # Re-analyze the page after scrolling
+            from browser.analyzers.page_analyzer import analyze_page
+            await analyze_page()
+            
+            # Search again in the updated page_elements
+            for idx, elem in enumerate(page_elements):
+                elem_type = elem.get('type', '').lower()
+                elem_text = elem.get('text', '').lower() if elem.get('text') else ''
+                elem_tag = elem.get('tagName', '').lower()
+                
+                # Match by type/tag and text if provided
+                type_match = False
+                if parsed_type:
+                    type_match = (
+                        parsed_type == elem_type or 
+                        parsed_type == elem_tag or
+                        (parsed_type == 'dropdown' and (
+                            elem_tag == 'select' or 
+                            elem_type == 'dropdown' or 
+                            elem.get('attributes', {}).get('role', '') == 'listbox'
+                        ))
+                    )
+                else:
+                    type_match = True  # No type constraint
+                    
+                text_match = False
+                if parsed_text:
+                    text_match = (
+                        parsed_text.lower() in elem_text or
+                        (elem.get('attributes', {}).get('value', '').lower() or '') == parsed_text.lower() or
+                        (elem.get('attributes', {}).get('placeholder', '').lower() or '') == parsed_text.lower() or
+                        (elem.get('attributes', {}).get('aria-label', '').lower() or '') == parsed_text.lower()
+                    )
+                else:
+                    text_match = True  # No text constraint
+                    
+                if type_match and text_match:
+                    element = elem
+                    break
         
         # If still no matching element, return error
         if not element:
@@ -628,119 +778,3 @@ async def _handle_new_tab(popup):
             await popup.close()
         except:
             pass
-
-async def _perform_click(element):
-    """
-    Perform a click on an element using multiple strategies.
-    
-    Args:
-        element (dict): Element information containing selector details
-    
-    Returns:
-        dict: Result of the click operation
-    """
-    try:
-        # First try to click using any available selectors
-        selectors = []
-        
-        # Collect all possible selectors in priority order
-        if element.get('cssSelector'):
-            selectors.append(element['cssSelector'])
-            
-        # Add aria-label selector if available
-        if element.get('attributes', {}).get('aria-label'):
-            aria_selector = f"[aria-label=\"{element.get('attributes', {}).get('aria-label')}\"]"
-            selectors.append(aria_selector)
-            
-        # Remove duplicates while preserving order
-        seen = set()
-        selectors = [s for s in selectors if s and not (s in seen or seen.add(s))]
-        
-        # If we have selectors, try to use them
-        if selectors:
-            print(f"Trying to click using selectors: {selectors}")
-            
-            # Try each selector
-            for selector in selectors:
-                try:
-                    await page.click(selector, timeout=2000, force=True)
-                    print(f"Successfully clicked using selector: {selector}")
-                    await asyncio.sleep(1)  # Wait for any navigation
-                    return {'success': True, 'method': 'selector_click', 'selector': selector}
-                except Exception as e:
-                    print(f"Failed to click with selector '{selector}': {e}")
-                    # Continue to next selector
-        
-        # If selectors fail or none available, try JavaScript click
-        try:
-            if selectors:
-                # Try JavaScript click with selectors
-                result = await page.evaluate("""
-                    (selectors) => {
-                        for (const selector of selectors) {
-                            try {
-                                const element = document.querySelector(selector);
-                                if (element) {
-                                    element.click();
-                                    return { success: true, method: 'js_click', selector };
-                                }
-                            } catch (err) {
-                                console.error(`JS click error for ${selector}:`, err);
-                            }
-                        }
-                        return { success: false };
-                    }
-                """, selectors)
-                
-                if result.get('success'):
-                    print(f"Successfully clicked using JavaScript with selector: {result.get('selector')}")
-                    await asyncio.sleep(1)
-                    return result
-            
-            # Try click at coordinates using JavaScript
-            result = await page.evaluate("""
-                (coords) => {
-                    try {
-                        const element = document.elementFromPoint(
-                            coords.x - window.pageXOffset,
-                            coords.y - window.pageYOffset
-                        );
-                        
-                        if (element) {
-                            element.click();
-                            return { 
-                                success: true, 
-                                method: 'js_coords_click',
-                                tag: element.tagName,
-                                class: element.className
-                            };
-                        }
-                    } catch (err) {
-                        console.error('JS coordinate click error:', err);
-                    }
-                    return { success: false };
-                }
-            """, {'x': element['center_x'], 'y': element['center_y']})
-            
-            if result.get('success'):
-                print(f"Successfully clicked at coordinates using JavaScript")
-                await asyncio.sleep(1)
-                return result
-                
-        except Exception as js_err:
-            print(f"JavaScript click failed: {js_err}")
-            
-        # If all else fails, use direct mouse click
-        print("Using direct mouse click as fallback")
-        await _click(element['center_x'], element['center_y'])
-        return {'success': True, 'method': 'direct_mouse_click'}
-        
-    except Exception as e:
-        print(f"Error in element click, using fallback: {e}")
-        try:
-            # Last resort - use direct mouse click
-            await _click(element['center_x'], element['center_y'])
-            return {'success': True, 'method': 'fallback_mouse_click'}
-        except Exception as click_err:
-            print(f"Final fallback click also failed: {click_err}")
-            return {'success': False, 'error': str(e)}

@@ -8,7 +8,6 @@ import psutil
 from pathlib import Path
 
 def is_port_in_use(port):
-    """Check if the specified port is already in use."""
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(1)
@@ -18,7 +17,6 @@ def is_port_in_use(port):
         return False
 
 def get_chrome_process():
-    """Get the Chrome process if it's running."""
     chrome_names = ['chrome', 'google chrome', 'google-chrome', 'chromium']
     for proc in psutil.process_iter(['pid', 'name']):
         try:
@@ -30,7 +28,6 @@ def get_chrome_process():
     return None
 
 def get_default_chrome_profile():
-    """Get the path to the user's default Chrome profile directory."""
     system = platform.system()
     home = Path.home()
     
@@ -47,26 +44,12 @@ def get_default_chrome_profile():
         return None
 
 def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None):
-    """
-    Launch Chrome with remote debugging enabled, with options for handling existing Chrome sessions.
-    
-    Args:
-        port: The debugging port to use
-        use_default_profile: Whether to try using default profile with login details
-        mode: How to handle existing Chrome sessions:
-              - "close_reopen": Close Chrome and reopen with debug + default profile (has logins)
-              - "new_window": Open a new Chrome window without closing existing (no logins)
-              - None: Prompt the user to choose (interactive mode)
-    
-    Returns:
-        bool: True if successful, False otherwise
-    """
     # Check if debugging port is already in use
     if is_port_in_use(port):
         print(f"✅ Chrome already running with remote debugging on port {port}")
         return True
     
-    # Check if Chrome is already running (without debugging)
+    # Check if Chrome is already running
     chrome_proc = get_chrome_process()
     chrome_running = chrome_proc is not None
     
@@ -82,11 +65,9 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
         print(f"Falling back to local profile at: {profile_dir}")
         default_profile_found = False
     
-    # If Chrome is already running, handle according to mode
     if chrome_running:
         print(f"⚠️ Chrome is already running but not in debug mode")
         
-        # If no mode specified, ask user
         if mode is None:
             print("Choose an option:")
             print("1. Close current Chrome and reopen with debugging (keeps login information)")
@@ -115,23 +96,19 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
                     subprocess.run(["killall", "-9", "chrome", "chromium"], check=False)
                 time.sleep(2)
             
-            # Now Chrome is closed, so we'll treat this like Chrome wasn't running
             chrome_running = False
             print("✅ Chrome closed successfully")
         
         elif mode == "new_window":
             print("Opening a new Chrome window with debugging (without login information)...")
-            # Continue with temp profile approach, handled below
     
     # Set up the system-specific Chrome launch command
     system = platform.system()
     chrome_process = None
     
     try:
-        # Launch Chrome with the appropriate profile based on situation
         if system == "Darwin":  # macOS
             if chrome_running:  # Using new_window mode
-                # Create a temporary profile for the new window
                 temp_profile_dir = Path(os.path.expanduser("~/Library/Application Support/Google/ChromeTemp"))
                 os.makedirs(temp_profile_dir, exist_ok=True)
                 
@@ -143,14 +120,12 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
                 ]
                 print("ℹ️ Using temporary profile without login information")
             else:
-                # Chrome is not running or we closed it
                 cmd = [
                     "open", "-a", "Google Chrome", 
                     "--args", f"--remote-debugging-port={port}",
                     "--no-first-run", "--no-default-browser-check"
                 ]
                 
-                # Only add user-data-dir if NOT using default profile
                 if not use_default_profile or not default_profile_found:
                     cmd.append(f"--user-data-dir={profile_dir}")
                     print("ℹ️ Using custom profile")
@@ -175,10 +150,8 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
                     chrome_path = path
                     break
             
-            # Build command with profile if needed
             if chrome_path:
                 if chrome_running:  # Using new_window mode
-                    # Use a temporary profile when Chrome is already running
                     temp_profile_dir = os.path.join(os.environ.get('TEMP', 'C:\\Temp'), 'ChromeTemp')
                     os.makedirs(temp_profile_dir, exist_ok=True)
                     
@@ -191,7 +164,6 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
                     ]
                     print("ℹ️ Using temporary profile without login information")
                 else:
-                    # Chrome not running or we closed it
                     cmd = [
                         chrome_path, 
                         f"--remote-debugging-port={port}",
@@ -199,7 +171,6 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
                         "--no-default-browser-check"
                     ]
                     
-                    # Only add user-data-dir if NOT using default profile
                     if not use_default_profile or not default_profile_found:
                         cmd.append(f"--user-data-dir={profile_dir}")
                         print("ℹ️ Using custom profile")
@@ -217,7 +188,6 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
                     cmd = f"start chrome --remote-debugging-port={port} --no-first-run --user-data-dir=\"{temp_profile_dir}\""
                     print("ℹ️ Using temporary profile without login information")
                 else:
-                    # Chrome not running or we closed it
                     cmd = f"start chrome --remote-debugging-port={port} --no-first-run"
                     if not use_default_profile or not default_profile_found:
                         cmd += f" --user-data-dir=\"{profile_dir}\""
@@ -234,7 +204,6 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
             for browser_cmd in ["google-chrome", "chrome", "chromium", "chromium-browser"]:
                 try:
                     if chrome_running:  # Using new_window mode
-                        # When Chrome is already running, use a temporary profile
                         temp_profile_dir = "/tmp/chromeTemp"
                         os.makedirs(temp_profile_dir, exist_ok=True)
                         
@@ -247,7 +216,6 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
                         ]
                         print("ℹ️ Using temporary profile without login information")
                     else:
-                        # Chrome not running or we closed it
                         cmd = [
                             browser_cmd, 
                             f"--remote-debugging-port={port}",
@@ -255,7 +223,6 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
                             "--no-default-browser-check"
                         ]
                         
-                        # Only add user-data-dir if NOT using default profile
                         if not use_default_profile or not default_profile_found:
                             cmd.append(f"--user-data-dir={profile_dir}")
                             print("ℹ️ Using custom profile")
@@ -275,18 +242,16 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
             print(f"❌ Unsupported operating system: {system}")
             return False
             
-        # Wait for Chrome to start and open the debugging port
+        # Wait for Chrome to start
         print("Giving Chrome extra time to start...")
-        time.sleep(5)  # Initial delay
+        time.sleep(5)
         
         max_attempts = 20
         for attempt in range(max_attempts):
-            # Check if the port is open
             if is_port_in_use(port):
                 print(f"✅ Verified Chrome is running with debugging port {port}")
                 return True
                 
-            # Try HTTP request to check debugging endpoint
             try:
                 import urllib.request
                 with urllib.request.urlopen(f"http://localhost:{port}/json/version", timeout=1) as response:
@@ -308,7 +273,6 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
         return False
 
 def close_chrome():
-    """Close Chrome browser."""
     system = platform.system()
     try:
         if system == "Darwin":  # macOS
@@ -326,5 +290,4 @@ def close_chrome():
         return False
 
 if __name__ == "__main__":
-    # Test the launcher when run directly
     launch_chrome_with_debugging(use_default_profile=True)

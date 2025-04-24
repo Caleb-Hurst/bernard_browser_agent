@@ -16,7 +16,7 @@ async def initialize(browser_page):
     page = browser_page
 
 @tool
-async def keyboard_action(input_text):
+async def keyboard_action(input_text) -> str:
     """
     Simulates keyboard shortcuts and special keys (not for typing text).
     

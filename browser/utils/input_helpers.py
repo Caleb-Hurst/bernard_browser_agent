@@ -79,41 +79,93 @@ async def update_cursor(page, x, y):
     except Exception as e:
         print(f"Error updating cursor: {e}")
 
-async def click(page, x, y):
-    """
-    Perform a realistic mouse click at specified coordinates.
+async def click(page, current_x, current_y):
+    """Click with the virtual cursor."""
+    # Change cursor appearance to indicate clicking
+    await page.evaluate("""
+        () => {
+            const cursor = document.getElementById('ai-agent-cursor');
+            if (cursor) {
+                cursor.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+                setTimeout(() => {
+                    cursor.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+                }, 200);
+            }
+        }
+    """)
+
+    # Execute DOM click via JavaScript with special handling for input fields
+    click_result = await page.evaluate("""
+        ({x, y}) => {
+            // Calculate viewport-relative coordinates
+            const viewX = x - window.pageXOffset;
+            const viewY = y - window.pageYOffset;
+            
+            // Find the element at those coordinates
+            const element = document.elementFromPoint(viewX, viewY);
+            
+            if (!element) {
+                console.log('No element found at coordinates', viewX, viewY);
+                return {success: false, reason: 'No element found'};
+            }
+            
+            console.log('Found element to click:', element.tagName, element.id, element.className);
+            
+            // Special handling for input fields to ensure focus
+            if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT') {
+                // Focus + click sequence for input fields
+                try {
+                    // Try multiple approaches for maximum compatibility
+                    element.focus();
+                    element.click();
+                    
+                    // Force focus with mousedown/mouseup events
+                    const mouseDown = new MouseEvent('mousedown', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    element.dispatchEvent(mouseDown);
+                    
+                    const mouseUp = new MouseEvent('mouseup', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    element.dispatchEvent(mouseUp);
+                    
+                    // Force selection of input text if present
+                    if (element.value) {
+                        element.select();
+                    }
+                    
+                    // Ensure element is focused
+                    if (document.activeElement !== element) {
+                        element.focus();
+                    }
+                    
+                    return {
+                        success: true,
+                        tagName: element.tagName,
+                        id: element.id || '(no id)',
+                        className: element.className || '(no class)',
+                        inputFocused: true
+                    };
+                } catch (e) {
+                    console.error('Input focus error:', e);
+                }
+            }
+            
+            // Standard click for non-input elements
+            element.click();
+            
+            return {
+                success: true,
+                tagName: element.tagName,
+                id: element.id || '(no id)',
+                className: element.className || '(no class)'
+            };
+        }
+    """, {"x": current_x, "y": current_y})
     
-    This function simulates a human-like click by:
-    1. Moving the mouse to the target location
-    2. Pressing the mouse button down
-    3. Waiting a realistic amount of time
-    4. Releasing the mouse button
-    
-    Args:
-        page: The browser page object
-        x: The x coordinate to click
-        y: The y coordinate to click
-    """
-    try:
-        # Update cursor position
-        await update_cursor(page, x, y)
-        
-        # Small delay before clicking (as if positioning)
-        await asyncio.sleep(random.uniform(0.05, 0.15))
-        
-        # Press mouse down
-        await page.mouse.move(x, y)
-        await page.mouse.down()
-        
-        # Realistic hold time
-        await asyncio.sleep(random.uniform(0.08, 0.15))
-        
-        # Release mouse
-        await page.mouse.up()
-        
-        # Small delay after clicking
-        await asyncio.sleep(random.uniform(0.1, 0.3))
-        
-        print(f"Clicked at position ({x}, {y})")
-    except Exception as e:
-        print(f"Error performing click: {e}")
+    print(f"DOM click result: {click_result}")

@@ -15,7 +15,7 @@ async def initialize(browser_page):
     page = browser_page
 
 @tool
-async def scroll(direction="down"):
+async def scroll(direction="down") -> str:
     """
     Scrolls the page in the specified direction.
     

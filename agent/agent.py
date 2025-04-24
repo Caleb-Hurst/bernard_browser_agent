@@ -13,25 +13,14 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 
 class AgentState(TypedDict):
-    """State for the browser agent."""
     messages: Annotated[list, add_messages]
     
 async def create_agent(api_key: str):
-    """Create and return a LangGraph agent with specified tools."""
-    
-    # Initialize Groq model
-    # llm = ChatGroq(
-    #     model="qwen-qwq-32b",
-    #     temperature=0,
-    #     max_tokens=2048,
-    #     api_key=api_key
-    # )
-
-    # For standard OpenAI API
+    # Initialize Azure OpenAI
     llm = AzureChatOpenAI(
         model_name="gpt-4o",
         openai_api_key=api_key,
-        temperature=1.0,
+        temperature=0,
         api_version="2024-12-01-preview",
         azure_endpoint= os.getenv("AZURE_ENDPOINT"),
     )
@@ -42,7 +31,7 @@ async def create_agent(api_key: str):
     
     # Create the system prompt
     system_prompt = """
-You are an expert AI agent that controls a web browser with precision, robust navigation awareness, and human-like interaction. Your goal is to reliably complete user tasks by analyzing, navigating, and interacting with web pages.
+You are an expert AI agent that controls a web browser with precision, robust navigation awareness. Your goal is to reliably complete user tasks by analyzing, navigating, and interacting with web pages.
 
 ## CORE TOOLS & CAPABILITIES
 - analyze_page: Extracts all visible elements and text. Use IMMEDIATELY after any navigation, click, or popup event. This tool builds an internal map of all interactive elements with numbered IDs.
@@ -53,6 +42,7 @@ You are an expert AI agent that controls a web browser with precision, robust na
 - navigate: Opens a URL. Ensures protocol (https://) is added if missing. ALWAYS follow with analyze_page().
 - go_back: Goes to previous page in browser history. ALWAYS follow with analyze_page().
 - scroll: Scrolls viewport in specified direction ("down", "up", "top", "bottom"). Use when elements are off-screen, for infinite scrolling pages, or when loading more content.
+- ask_user: Requests information directly from the user. Use JSON format: ask_user('{"prompt":"What is your username?","type":"text"}') or ask_user('{"prompt":"Choose payment method","type":"choice","choices":["Credit","PayPal"]}') or ask_user('{"prompt":"Enter password","type":"password"}').
 
 ## DYNAMIC CONTENT INTERACTION
 - For infinite scroll pages: Use scroll("down") repeatedly, running analyze_page() after each scroll to capture newly loaded content.
@@ -98,11 +88,26 @@ You are an expert AI agent that controls a web browser with precision, robust na
 - Filters and sorting: Use these controls to narrow down large sets of results to find specific items.
 - Pagination: Look for pagination controls when dealing with multi-page content and navigate between pages as needed.
 - Browser history: Use go_back() strategically to return to previously visited pages rather than re-navigating from the start.
+
+## USER INTERACTION WITH ASK_USER TOOL
+Use the ask_user tool to collect information or decisions from users during tasks:
+
+- **Syntax**: `ask_user('{"prompt":"Question?","type":"text|password|choice","choices":["Option1","Option2"],"default":"Default"}')`
+- **Common Uses**:
+  1. Authentication: `ask_user('{"prompt":"Enter password","type":"password"}')`
+  2. Choices: `ask_user('{"prompt":"Select payment method","type":"choice","choices":["Credit","PayPal"]}')`
+  3. Confirmations: `ask_user('{"prompt":"Proceed with purchase?","type":"choice","choices":["Yes","No"]}')`
+  4. Form data: `ask_user('{"prompt":"Enter shipping address","type":"text"}')`
+  5. CAPTCHA assistance: `ask_user('{"prompt":"Please help with CAPTCHA verification"}')`
+
+Always ask for ONE piece of information at a time, use clear prompts, and choose appropriate input types.
+
+Response : [Provide the specific information requested by the user, including any data, facts, or details discovered. State "Goal completed successfully" when done.]
+
 """
 
     # Create async node for chatbot
     async def chatbot(state: AgentState):
-        """Process messages and generate a response."""
         # If no message exists, return no change to state
         if not state.get("messages", []):
             return {"messages": []}
@@ -132,13 +137,12 @@ You are an expert AI agent that controls a web browser with precision, robust na
     memory = MemorySaver()
     graph = graph_builder.compile(checkpointer=memory)
     
-    # Wrap the graph with an interface similar to the original AgentExecutor
+    # Wrap the graph with an interface
     class LangGraphAgent:
         def __init__(self, graph):
             self.graph = graph
             
         async def ainvoke(self, input_text, thread_id="main"):
-            """Invoke the agent with the input text asynchronously."""
             config = {"configurable": {"thread_id": thread_id}}
             
             # Start with system message and user input
@@ -152,10 +156,10 @@ You are an expert AI agent that controls a web browser with precision, robust na
             # Run the graph asynchronously
             result = await self.graph.ainvoke(state, config)
             
-            # Format the result to match the expected format
+            # Format the result
             output = result["messages"][-1].content
             
-            # Create a result similar to AgentExecutor's format
+            # Create a result
             return {
                 "input": input_text,
                 "output": output,
@@ -163,7 +167,6 @@ You are an expert AI agent that controls a web browser with precision, robust na
             }
         
         def invoke(self, input_text, thread_id="main"):
-            """Synchronous wrapper for backwards compatibility."""
             # Get the current event loop or create a new one
             try:
                 loop = asyncio.get_event_loop()
@@ -175,7 +178,6 @@ You are an expert AI agent that controls a web browser with precision, robust na
             return loop.run_until_complete(self.ainvoke(input_text, thread_id))
             
         async def astream(self, input_text, thread_id="main"):
-            """Stream the agent's thinking process asynchronously."""
             config = {"configurable": {"thread_id": thread_id}}
             
             # Start with system message and user input
@@ -192,7 +194,6 @@ You are an expert AI agent that controls a web browser with precision, robust na
                     event["messages"][-1].pretty_print()
                     
         def stream(self, input_text, thread_id="main"):
-            """Synchronous streaming wrapper for backwards compatibility."""
             # Get the current event loop or create a new one
             try:
                 loop = asyncio.get_event_loop()

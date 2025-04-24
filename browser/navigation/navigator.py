@@ -14,7 +14,7 @@ async def initialize(browser_page):
     page = browser_page
 
 @tool
-async def navigate(url):
+async def navigate(url) -> str:
     """
     Navigates browser to a specified URL.
     
@@ -63,7 +63,7 @@ async def navigate(url):
         return f"Error navigating to {url}: {str(e)}"
 
 @tool
-async def go_back():
+async def go_back() -> str:
     """
     Navigates back to the previous page in browser history.
     

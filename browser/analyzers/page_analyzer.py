@@ -175,31 +175,91 @@ async def analyze_page():
                 
                 // Find all modal/dialog/popup elements
                 function findPopups() {
-                    // Common selectors for modals/dialogs/popups
+                    // Expanded selectors for modals/dialogs/popups
                     const selectors = [
-                        '[role=dialog]',
-                        '[aria-modal="true"]',
-                        '[data-modal="true"]',
-                        '.modal',
-                        '.dialog',
-                        '.popup',
-                        '.overlay',
-                        '.pop-up',
-                        '.ant-modal', // Ant Design
-                        '.MuiDialog-root', // Material UI
+                        // ARIA roles and attributes
+                        '[role=dialog]', '[role=alertdialog]', '[role=drawer]', '[role=tooltip]', '[role=menu]',
+                        '[aria-modal="true"]', '[aria-haspopup="dialog"]', '[aria-haspopup="menu"]',
+                        
+                        // Data attributes
+                        '[data-modal="true"]', '[data-popup="true"]', '[data-dialog="true"]', '[data-overlay="true"]',
+                        
+                        // Common class patterns
+                        '.modal', '.dialog', '.popup', '.overlay', '.pop-up', '.popover', '.tooltip', '.drawer',
+                        '.toast', '.notification', '.alert-box',
+                        
+                        // Framework-specific selectors
+                        '.ant-modal', '.ant-drawer', '.ant-popover', // Ant Design
+                        '.MuiDialog-root', '.MuiDrawer-root', '.MuiPopover-root', // Material UI
                         '.ReactModal__Content', // React Modal
-                        '[class*="modal"]',
-                        '[class*="dialog"]',
-                        '[class*="popup"]',
-                        '[class*="overlay"]'
+                        '.modal-dialog', '.modal-content', '.popover', // Bootstrap
+                        '.chakra-modal', '.chakra-dialog', // Chakra UI
+                        '.ui.modal', '.ui.popup', // Semantic UI
+                        '.v-dialog', '.v-menu', // Vuetify
+                        
+                        // Generic patterns
+                        '[class*="modal"]', '[class*="dialog"]', '[class*="popup"]', '[class*="overlay"]',
+                        '[class*="drawer"]', '[class*="toast"]', '[class*="tooltip"]', '[class*="popover"]'
                     ];
-                    // Select visible popups only
+                    
+                    // Find all visible popups
                     const popups = [];
+                    
+                    // Check for elements matching our selectors
                     for (const sel of selectors) {
                         for (const el of document.querySelectorAll(sel)) {
                             if (isVisible(el)) popups.push(el);
                         }
                     }
+                    
+                    // Check for fixed/absolute positioned elements with high z-index
+                    document.querySelectorAll('div, section, aside').forEach(el => {
+                        if (!popups.includes(el) && isVisible(el)) {
+                            const style = window.getComputedStyle(el);
+                            const position = style.position;
+                            const zIndex = parseInt(style.zIndex) || 0;
+                            
+                            // Fixed/absolute with high z-index are often modals/popups
+                            if ((position === 'fixed' || position === 'absolute') && zIndex > 10) {
+                                const rect = el.getBoundingClientRect();
+                                if (rect.width > 50 && rect.height > 50) { // Reasonable size check
+                                    popups.push(el);
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Check for elements near known backdrops (often indicates a modal)
+                    const backdrops = document.querySelectorAll('.modal-backdrop, .overlay, .backdrop, .dimmer, [class*="backdrop"], [class*="overlay"]');
+                    for (const backdrop of backdrops) {
+                        if (isVisible(backdrop)) {
+                            const backdropRect = backdrop.getBoundingClientRect();
+                            const viewportCenter = {
+                                x: window.innerWidth / 2,
+                                y: window.innerHeight / 2
+                            };
+                            
+                            // Look for visible centered elements - often these are modals related to backdrops
+                            document.querySelectorAll('div, section, aside').forEach(el => {
+                                if (!popups.includes(el) && isVisible(el)) {
+                                    const rect = el.getBoundingClientRect();
+                                    const elementCenter = {
+                                        x: rect.left + rect.width / 2,
+                                        y: rect.top + rect.height / 2
+                                    };
+                                    
+                                    // Is it centered, reasonable size, and contained within backdrop?
+                                    const isCentered = Math.abs(elementCenter.x - viewportCenter.x) < viewportCenter.x / 3 &&
+                                                      Math.abs(elementCenter.y - viewportCenter.y) < viewportCenter.y / 3;
+                                    
+                                    if (isCentered && rect.width > 50 && rect.height > 50) {
+                                        popups.push(el);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    
                     // Remove duplicates
                     return Array.from(new Set(popups));
                 }
@@ -335,6 +395,18 @@ async def analyze_page():
             
             # Add each item, grouping related content on the same line
             for item in page_content['content']:
+                # Skip elements where type matches display text (e.g., "[49][button]button")
+                if item.startswith('['):
+                    # Parse the element format: [id][type]text
+                    parts = item.split(']', 2)
+                    if len(parts) >= 3:
+                        element_type = parts[1][1:]  # Get the type without '['
+                        display_text = parts[2]      # Get the display text
+                        
+                        # Skip if the element type exactly matches its display text
+                        if display_text.strip() == element_type:
+                            continue
+                
                 # Start a new line for interactive elements or if current line is empty
                 if item.startswith('[') or not current_line:
                     if (current_line):  # Add the previous line if it exists

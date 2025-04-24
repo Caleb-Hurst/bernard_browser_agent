@@ -1,213 +1,516 @@
-# Browser Agent: AI Agent that Controls Browser and Performs Tasks
+# 🌐 Browser Agent
 
-A smart AI agent designed to control your browser and execute tasks based on natural language instructions. Built on Playwright, LangChain, and advanced LLMs, this agent combines intelligent decision-making with human-like interaction to navigate websites, analyze page content, and perform a wide range of tasks.
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/browser-agent)
+[![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
-## 🌟 Overview
+> **An AI-powered automation tool that controls web browsers through natural language commands**
 
-Browser Agent empowers you to:
-- Navigate websites autonomously
-- Interact with page elements via realistic cursor movements
-- Interpret page content and structure with advanced DOM analysis
-- Execute search queries, fill forms, click buttons, and scroll pages
-- Perform any browser-based task given by the user
+<div align="center">
+   <h2>AI Browser Navigation Demo</h2>
+   <a href="https://www.youtube.com/watch?v=Xp3w5H4-pOw" target="_blank">
+      <img src="https://img.youtube.com/vi/Xp3w5H4-pOw/maxresdefault.jpg" alt="AI Browser Navigation Demo" width="700" height="400" />
+   </a>
+   <p><em>Click the image above to watch the demo video</em></p>
+</div>
 
-All while simulating realistic human behaviors through natural mouse movements, typing patterns, and interaction timing.
+## 📋 Table of Contents
 
-## ✨ Key Features
+- [Overview](#overview)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Usage Examples](#usage-examples)
+- [Configuration](#configuration)
+- [Browser Agent Tools](#browser-agent-tools)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Technical Details](#technical-details)
+- [Error Handling](#error-handling)
+- [Advanced Usage](#advanced-usage)
+- [Troubleshooting](#troubleshooting)
+- [Use Cases](#use-cases)
+- [Limitations](#limitations)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
 
-- **Natural Human-Like Interaction**: Realistic mouse movements, variable typing speeds, and natural pauses
-- **Visual Element Recognition**: Advanced DOM analysis to find and interact with elements based on descriptions
-- **Intelligent Page Analysis**: Comprehensive page content extraction and structure understanding
-- **Cross-Browser Compatibility**: Works with Chrome browser
-- **LLM-Powered Decision Making**: Uses Groq's LLaMa-3.3-70b model for task understanding
-- **Session Persistence**: Option to connect to existing browser sessions
+## 🔍 Overview
 
-## 🛠️ Requirements
+Browser Agent is a sophisticated Python application that enables users to control web browsers through natural language instructions. It uses a combination of AI models, browser automation, and DOM analysis to navigate websites, fill forms, click buttons, and perform complex web tasks based on natural language descriptions.
 
-- Python 3.9+
-- Chrome browser installed
-- OpenAI or Groq API key (for LLM capabilities)
-- Playwright-compatible OS (Windows, macOS, Linux)
+The agent features intelligent page analysis, robust error handling, and flexible interaction capabilities, making it ideal for automating repetitive browser tasks, web scraping, site testing, and interactive browsing sessions.
 
-## 📋 Installation
+<details>
+<summary><strong>Why use Browser Agent?</strong></summary>
+
+- **Simplify Web Automation** - No more complex automation scripts or browser extensions
+- **Reduce Learning Curve** - Use natural language instead of programming syntax
+- **Improve Productivity** - Automate repetitive web tasks with minimal effort
+- **Enhance Accessibility** - Enable browser control for users with limited technical knowledge
+- **Rapid Prototyping** - Quickly test and iterate on web workflows
+</details>
+
+## ✨ Features
+
+- **🗣️ Natural Language Control**: Control your browser with simple human language instructions
+- **🔍 Intelligent Page Analysis**: Automatic detection and mapping of interactive elements on web pages
+- **🧭 Context-Aware Navigation**: Smart navigation with history tracking and state awareness
+- **📝 Form Handling**: Fill forms, select options from dropdowns, and submit data seamlessly
+- **⚡ Dynamic Content Support**: Handle AJAX, infinite scrolling, popups, and dynamically loaded content
+- **🔄 Error Recovery**: Robust error detection and recovery strategies
+- **👤 User Interaction**: Request information from the user during task execution when needed
+- **🌍 Multi-Browser Support**: Connect to existing Chrome browsers or launch new instances
+
+## 🚀 Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/browser-agent.git
+cd browser-agent
+
+# Install dependencies
+pip install -r requirements.txt
+playwright install
+
+# Set your API key (replace with your actual key)
+export OPENAI_API_KEY=your_api_key_here
+
+# Run the Browser Agent
+python main.py run
+```
+
+## 📦 Installation
+
+### Prerequisites
+
+- Python 3.11 or higher
+- pip (Python package manager)
+- Chrome browser (for existing browser connection)
+
+### Step-by-Step Installation
 
 1. **Clone the repository**
+
    ```bash
-   git clone https://github.com/rkvalandas/browser_agent.git
-   cd browser_agent
+   git clone https://github.com/yourusername/browser-agent.git
+   cd browser-agent
    ```
 
-2. **Set up a virtual environment (recommended)**
+2. **Create a virtual environment (recommended)**
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install dependencies**
+3. **Install Python dependencies**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. **Install Playwright browsers**
+
    ```bash
-   playwright install chromium
+   playwright install
    ```
 
-5. **Configure environment variables**
-   - Create a .env file in the project root (see Configuration section)
+5. **Set up environment variables**
 
+   Create a `.env` file in the project root:
 
-## 🚀 Getting Started
-
-### Basic Setup
-
-1. **Create your .env file with API keys:**
    ```
-   # API Keys
-   # GROQ_API_KEY=your_groq_api_key
-   OPENAI_API_KEY=your_google_api_key
-   
-   # Browser settings
-   BROWSER_HEADLESS=false  # Set to true for headless operation
+   OPENAI_API_KEY=your_api_key_here
+   AZURE_ENDPOINT=your_azure_endpoint  # If using Azure OpenAI
    ```
 
-2. **Start the application:**
+   Or set them directly in your terminal:
+
    ```bash
-   python main.py
+   export OPENAI_API_KEY=your_api_key_here
+   export AZURE_ENDPOINT=your_azure_endpoint
    ```
 
-3. **Enter natural language instructions** when prompted. Examples:
-   - "Go to amazon.com and search for wireless headphones under 1000 and buy it"
-   - "Navigate to weather.com and check the forecast for New York"
+## 🎮 Usage Examples
 
+### Basic Commands
 
-## 🎬 Video Demonstration
+```bash
+# Start a new browser session with the agent
+python main.py run
 
-See our AI Browser Agent in action through these demonstration videos:
+# Launch with a specific task
+python main.py run --task "Go to example.com and click the signup button"
 
-### Demo 1: Basic Web Navigation
-[![AI Browser Navigation Demo](https://img.youtube.com/vi/Xp3w5H4-pOw/0.jpg)](https://www.youtube.com/embed/Xp3w5H4-pOw "Click to Watch Demo")
+# Run in headless mode (no visible browser window)
+python main.py run --headless
 
-*Watch how the agent navigates to websites and extracts information.*
+# Launch Chrome with remote debugging enabled
+python main.py launch --port 9222
 
-### Advanced Configuration
+# Run with verbose debug logging
+python main.py debug
+```
 
-Edit config.py to customize browser behavior:
+### Interactive Examples
+
+When the Browser Agent is running, you can provide natural language instructions of medium complexity that it will execute efficiently:
+
+```
+# Research and Summarize
+Enter your instruction: Go to Wikipedia, search for "artificial intelligence ethics", find the main concerns section, and summarize the key points
+
+# Online Shopping Assistant
+Enter your instruction: Search for a mid-range laptop on Amazon with at least 16GB RAM, sort by customer ratings, and tell me the top three options with their prices
+
+# News Aggregation
+Enter your instruction: Visit three major news sites, find articles about climate change from the past week, and create a summary of the main developments
+
+# Recipe Finder
+Enter your instruction: Find a chicken curry recipe that takes less than 30 minutes to prepare, has good reviews, and doesn't require specialty ingredients
+
+# Product Comparison
+Enter your instruction: Compare the features and prices of the latest iPhone and Samsung Galaxy models, focusing on camera quality and battery life
+
+# Event Planning
+Enter your instruction: Search for outdoor concerts in San Francisco next month, check the weather forecast for those dates, and recommend the best weekend to attend
+
+# Job Search
+Enter your instruction: Find software developer jobs in Boston that allow remote work, require Python experience, and were posted in the last week
+
+# Email Writing
+Enter your instruction: Write an email based on the extracted data or task completed. The email should be clear, professional, and suitable to send to a colleague or manager. Include a brief summary of what was done, any important findings, and next steps if applicable.
+
+```
+
+These examples show how Browser Agent can handle tasks that involve multiple steps across one or more websites, gathering specific information based on criteria, and providing summarized results.
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create a `.env` file with the following variables:
+
+```
+OPENAI_API_KEY=your_api_key_here
+AZURE_ENDPOINT=your_azure_endpoint  # If using Azure OpenAI
+```
+
+### Browser Configuration
+
+Configure browser settings in `configurations/config.py`:
 
 ```python
-# Browser launch options
 BROWSER_OPTIONS = {
-    "headless": os.getenv("BROWSER_HEADLESS", "false").lower() == "true",
-    "channel": "chrome",  # Browser to use
-    "args": [
-        "--start-maximized",  # Start with maximized window
-        "--disable-notifications",  # Prevent notification prompts
-        "--disable-extensions"  # Disable browser extensions
-    ]
+    "headless": False,         # Run browser headlessly or with UI
+    "slowmo": 0,               # Slow down actions by milliseconds (for debugging)
+    "timeout": 30000,          # Default timeout in milliseconds
+    "viewport": {              # Browser window size
+        "width": 1280,
+        "height": 800
+    }
 }
 
-# Connection to existing browsers
 BROWSER_CONNECTION = {
-    "use_existing": True,  # Connect to running Chrome instance
-    "cdp_endpoint": "http://localhost:9222",  # DevTools Protocol endpoint
-    "fallback_to_new": True  # Launch new if connection fails
+    "use_existing": False,     # Connect to existing Chrome instance
+    "cdp_endpoint": None,      # Custom CDP endpoint (e.g., "http://localhost:9222")
+    "fallback_to_new": True,   # Fallback to launching new browser if connection fails
 }
 ```
 
+### Advanced Configuration Options
 
-## 🧩 Architecture
+<details>
+<summary><strong>Agent Configuration</strong></summary>
 
-The system comprises several key components:
+Modify `agent/agent.py` to configure the LLM settings:
 
-1. **VirtualBrowserController** (`browser_controller.py`)
-   - Core class that provides high-level browser interaction methods
-   - Implements human-like mouse movements and typing patterns
-   - Handles element finding and interaction
+```python
+# LLM Model settings
+llm = AzureChatOpenAI(
+    model_name="gpt-4o",           # Model to use
+    openai_api_key=api_key,        # API key
+    temperature=0,                 # Deterministic output (0) to creative (1)
+    api_version="2024-12-01-preview",
+    azure_endpoint=os.getenv("AZURE_ENDPOINT"),
+)
+```
 
-2. **Browser Setup** (`browser_setup.py`)
-   - Manages browser initialization and connection
-   - Injects scripts for cursor visualization
-   - Configures navigation interception
+</details>
 
-3. **LangChain Agent** (`agent.py`)
-   - Implements the AI reasoning layer using Groq's LLaMa model
-   - Processes natural language instructions
-   - Makes decisions about web navigation and interaction
+## 🛠️ Browser Agent Tools
 
-4. **Agent Tools** (`agent_tools.py`)
-   - Defines the tools available to the agent
-   - Maps agent decisions to browser controller methods
+The agent uses these specialized tools to control the browser:
 
-5. **Input Helpers** (`input_helpers.py`)
-   - Utility functions for human-like input behaviors
-   - Implements cursor movement, clicking, and typing
+| Tool                | Description                                                             | Example                                                          |
+| ------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **analyze_page**    | Scans the DOM to create a map of all visible elements with numbered IDs | `analyze_page()`                                                 |
+| **click**           | Clicks on elements using IDs from the page analysis                     | `click("[3][button]Submit")`                                     |
+| **fill_input**      | Fills text into input fields                                            | `fill_input('{"id":"5","type":"input","value":"example text"}')` |
+| **select_option**   | Selects options from dropdown menus                                     | `select_option('{"id":"8","value":"Option 2"}')`                 |
+| **keyboard_action** | Sends keyboard shortcuts and special keys                               | `keyboard_action("Enter")`                                       |
+| **navigate**        | Opens a URL in the browser                                              | `navigate("https://example.com")`                                |
+| **go_back**         | Navigates to the previous page in browser history                       | `go_back()`                                                      |
+| **scroll**          | Scrolls the viewport in specified directions                            | `scroll("down")`                                                 |
+| **ask_user**        | Requests information from the user during task execution                | `ask_user('{"prompt":"Enter password","type":"password"}')`      |
 
-## 🔍 Key Capabilities
+### How Element References Work
 
-### Page Analysis
-The system analyzes web pages using advanced DOM traversal to:
-- Extract visible text content
-- Identify interactive elements (buttons, links, inputs)
-- Understand page structure and hierarchies
-- Recognize form fields and associated labels
+When the agent analyzes a page, it assigns numeric IDs to each interactive element:
 
-### Element Selection
-The AI can find elements using various methods:
-- Text content matching
-- Element type filtering
-- Positional awareness
-- Context-based identification
-- Visual appearance analysis
+```
+[1][button]Sign Up
+[2][link]Learn More
+[3][input]Search
+```
 
-### Human-like Interaction
-Interactions mimic human behavior with:
-- Natural mouse acceleration/deceleration
-- Variable typing speed with realistic pauses
-- Appropriate wait times between actions
-- Scrolling with natural timing
+The agent can then reference these elements by their ID, type, and text:
 
-## 🔧 Troubleshooting
+```
+click("[1][button]Sign Up")
+```
 
-### Common Issues
+## 🏗️ Architecture
 
-1. **Browser Connection Issues**
-   - Ensure Chrome is running with `--remote-debugging-port=9222` if using existing browser
-   - Check firewall settings aren't blocking connections
-   - Try setting `use_existing: False` to launch a new browser
+The Browser Agent is structured in a modular fashion:
+<p align="center">
+   <img src="./images/browser_agent.png" alt="Browser Agent Architecture" width="800">
+</p>
 
-2. **Element Interaction Failures**
-   - Try running in non-headless mode (`BROWSER_HEADLESS=false`)
-   - Use more specific element descriptions
-   - Check if the page uses unusual JavaScript frameworks
+### Core Components
 
-3. **API Key Issues**
-   - Verify your Groq API key in the .env file
-   - Check for trailing spaces in the API key
-   - Ensure you have sufficient API quota
+- **Agent Layer**: Manages AI interactions using LangChain and LangGraph
+- **Browser Layer**: Controls web browsers via Playwright
+- **CLI Layer**: Provides command-line interface and configuration
+- **Tools Layer**: Implements specialized browser interaction capabilities
 
-## 📊 Advanced Usage
+### Data Flow
 
-### Running in Headless Mode
+1. User provides natural language instruction
+2. Agent processes instruction and plans actions
+3. Agent executes actions using browser tools
+4. Browser interacts with web pages
+5. Page analyzer extracts information from DOM
+6. Agent interprets results and plans next actions
+7. Agent provides results back to user
 
-For server environments, set `BROWSER_HEADLESS=true` in your .env file.
-This runs the browser without a visible UI, suitable for automated tasks.
+## 📂 Project Structure
 
-### Custom Prompting
+```
+browser_agent/
+├── agent/
+│   └── agent.py             # AI agent implementation
+├── browser/
+│   ├── analyzers/
+│   │   └── page_analyzer.py # DOM analysis tools
+│   ├── controllers/
+│   │   ├── browser_controller.py  # Main browser interface
+│   │   ├── element_controller.py  # Element interaction
+│   │   └── keyboard_controller.py # Keyboard actions
+│   ├── navigation/
+│   │   ├── navigator.py      # URL and history navigation
+│   │   └── scroll_manager.py # Scrolling capabilities
+│   ├── utils/
+│   │   ├── dom_helpers.py     # DOM manipulation helpers
+│   │   ├── input_helpers.py   # Input processing utilities
+│   │   └── user_interaction.py # User interaction tools
+│   └── browser_setup.py      # Browser initialization
+├── cli/
+│   ├── chrome_launcher.py    # Chrome debugging launcher
+│   └── commands.py           # CLI command definitions
+├── configurations/
+│   └── config.py             # Configuration settings
+├── main.py                   # Application entry point
+└── requirements.txt          # Dependencies
+```
 
-The agent uses a sophisticated prompt template defined in agent.py. Advanced users can modify this template to tune the agent's behavior for specific tasks.
+## 🔧 Technical Details
 
-## 📄 License
+### AI Agent Framework
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+The Browser Agent is built on LangGraph, a stateful workflow framework for LLM applications. The agent uses a GPT model from Azure OpenAI with specialized tools for browser control.
 
-## 👥 Contributing
+<details>
+<summary><strong>Agent Workflow</strong></summary>
+
+1. **Instruction Processing**: The LLM parses the natural language instruction
+2. **Tool Selection**: The agent decides which browser tools to use
+3. **Action Execution**: The agent executes actions sequentially
+4. **Progress Monitoring**: The agent tracks state changes and adapts
+5. **Result Generation**: The agent compiles results for the user
+</details>
+
+### Browser Automation
+
+The system uses Playwright for browser automation, providing cross-browser compatibility and powerful DOM manipulation capabilities.
+
+### Element Detection
+
+The Page Analyzer uses advanced JavaScript to scan the DOM and identify interactive elements, creating a numbered map of elements that the agent can reference with precise IDs.
+
+## 🚨 Error Handling
+
+The Browser Agent employs sophisticated error handling:
+
+- **Element Detection**: Re-analysis after scrolling or waiting for dynamic content
+- **Click Failures**: Alternative selection strategies and visibility checks
+- **Navigation Issues**: Error detection and recovery for failed navigations
+- **Form Validation**: Reading and addressing validation errors
+- **Session Management**: Detection and handling of timeouts and authentication issues
+
+## 🔍 Advanced Usage
+
+### Connecting to Existing Chrome Instances
+
+You can connect the Browser Agent to an already running Chrome instance:
+
+1. Launch Chrome with remote debugging enabled:
+
+   ```bash
+   python main.py launch --port 9222
+   ```
+
+2. Configure the Browser Agent to use the existing instance:
+
+   ```python
+   # In configurations/config.py
+   BROWSER_CONNECTION = {
+       "use_existing": True,
+       "cdp_endpoint": "http://localhost:9222",
+   }
+   ```
+
+3. Run the Browser Agent:
+   ```bash
+   python main.py run
+   ```
+
+### Creating Multi-Step Automated Workflows
+
+You can chain multiple instructions into a single workflow:
+
+```bash
+python main.py run --task "Go to gmail.com, wait for the login page,
+enter the username 'test@example.com', click next, wait for the password field,
+ask me for the password, enter it, and click sign in"
+```
+
+### User Interaction During Execution
+
+The agent can prompt for user input during execution:
+
+```python
+# Example of how the agent uses the ask_user tool
+ask_user('{"prompt":"Please enter your 2FA code","type":"text"}')
+```
+
+## 🔍 Troubleshooting
+
+<details>
+<summary><strong>Browser Connection Issues</strong></summary>
+
+**Problem**: Unable to connect to Chrome with debugging enabled
+
+**Solutions**:
+
+1. Ensure Chrome is not already running with the same debugging port
+2. Try a different port: `python main.py launch --port 9223`
+3. Check firewall settings that might block the connection
+4. Verify Chrome is installed in the default location or set the path manually
+</details>
+
+<details>
+<summary><strong>Page Analysis Problems</strong></summary>
+
+**Problem**: Agent can't find or interact with elements on the page
+
+**Solutions**:
+
+1. Give the page more time to load completely before analyzing
+2. For dynamic content, ask the agent to scroll and re-analyze
+3. Make your element references more specific
+4. For highly dynamic sites, try slowing down agent actions with the `slowmo` option
+</details>
+
+<details>
+<summary><strong>Authentication Challenges</strong></summary>
+
+**Problem**: Agent can't handle login procedures with CAPTCHA or 2FA
+
+**Solutions**:
+
+1. Pre-authenticate in the browser before connecting the agent
+2. Use the `ask_user` tool to get manual input for verification challenges
+3. Consider using cookies or saved sessions for sites you access frequently
+</details>
+
+## 💼 Use Cases
+
+- **Web Automation**: Automate repetitive web tasks with natural language instructions
+
+  ```
+  Fill out the same form on 20 different websites with my business information
+  ```
+
+- **Site Testing**: Test web applications with natural language test cases
+
+  ```
+  Visit our app, try to create a new account, and report any errors
+  ```
+
+- **Data Collection**: Extract information from websites
+
+  ```
+  Go to the weather website and collect the 5-day forecast for New York, Chicago, and Los Angeles
+  ```
+
+- **Interactive Assistance**: Guide users through complex web processes
+
+  ```
+  Help me book a flight from New York to San Francisco for next Friday, returning Sunday
+  ```
+
+- **Prototyping**: Quickly test web workflows without writing code
+  ```
+  Try our new checkout process with different payment methods and report the experience
+  ```
+
+## ⚠️ Limitations
+
+- Cannot handle CAPTCHA or authentication challenges requiring human verification
+- May face challenges with highly dynamic web apps that change rapidly
+- Not designed for high-security operations (banking, etc.)
+- Performance depends on the complexity of the website and instructions
+- Cannot interact with elements that require hover actions only (without clickable alternatives)
+- May struggle with websites that heavily use canvas or WebGL for rendering
+
+## 🛣️ Roadmap
+
+- **Multi-session Support**: Run multiple browser sessions simultaneously
+- **Screenshot Capabilities**: Capture and analyze visual elements
+- **PDF Processing**: Extract information from PDFs displayed in browsers
+- **Enhanced Error Recovery**: More sophisticated recovery strategies
+- **User Interface**: Add a web-based UI for easier interaction
+- **Action Recording**: Record and replay browser sessions
+- **Customizable Agents**: User-defined agent personalities and capabilities
+
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## ⭐ Support This Project
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-If you find this project useful, please consider giving it a star on GitHub! It helps make the project more visible and encourages continued development.
+## 📄 License
 
-[![GitHub stars](https://img.shields.io/github/stars/rkvalandas/browser_agent.svg?style=social&label=Star)](https://github.com/rkvalandas/browser_agent)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-*Your feedback and contributions are greatly appreciated!*
+---
+
+<p align="center">
+  Made with ❤️ by rkvalandasu
+</p>

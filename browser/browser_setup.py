@@ -1,7 +1,6 @@
 from playwright.async_api import async_playwright
 
 def inject_cursor_script():
-    """Returns the script to inject for cursor visualization"""
     return """
     // Create a custom cursor element
     const cursor = document.createElement('div');
@@ -17,7 +16,7 @@ def inject_cursor_script():
     cursor.style.zIndex = '999999';
     cursor.style.transition = 'left 0.1s, top 0.1s';
     
-    // Add cursor to the page when it loads
+    // Add cursor to the page
     document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(cursor);
     });
@@ -41,7 +40,6 @@ def inject_cursor_script():
     """
 
 async def initialize_browser(options, connection_options=None):
-    """Initialize the browser by connecting to existing instance or launching a new one."""
     playwright = await async_playwright().start()
     
     # Default connection options if none provided
@@ -80,7 +78,7 @@ async def initialize_browser(options, connection_options=None):
                 raise e
                 
             print("Falling back to launching a new browser instance...")
-            browser = None  # Reset for fallback path
+            browser = None
     
     # Launch a new browser if needed
     if browser is None:
@@ -88,7 +86,6 @@ async def initialize_browser(options, connection_options=None):
         browser = await playwright.chromium.launch(**options)
         page = await browser.new_page(viewport=None)
     
-    # Shared initialization regardless of connection method
     # Inject cursor visualization CSS and JavaScript
     await page.add_init_script(inject_cursor_script())
     
@@ -119,7 +116,6 @@ async def initialize_browser(options, connection_options=None):
     # Ensure cursor is created and function is available
     await page.evaluate("""
         () => {
-            // Create a custom cursor element if it doesn't exist
             if (!document.getElementById('ai-agent-cursor')) {
                 const cursor = document.createElement('div');
                 cursor.id = 'ai-agent-cursor';
@@ -136,7 +132,6 @@ async def initialize_browser(options, connection_options=None):
                 document.body.appendChild(cursor);
             }
             
-            // Define the updateAICursor function if it doesn't exist
             if (typeof window.updateAICursor !== 'function') {
                 window.updateAICursor = function(x, y) {
                     const cursor = document.getElementById('ai-agent-cursor');
@@ -157,7 +152,6 @@ async def initialize_browser(options, connection_options=None):
     return playwright, browser, page
 
 async def close_browser(playwright, browser, is_connected=False):
-    """Close the browser cleanly."""
     try:
         if is_connected:
             # If connected to existing browser, just disconnect
