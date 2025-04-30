@@ -20,7 +20,6 @@ async def create_agent(api_key: str):
     llm = AzureChatOpenAI(
         model_name="gpt-4o",
         openai_api_key=api_key,
-        temperature=0,
         api_version="2024-12-01-preview",
         azure_endpoint= os.getenv("AZURE_ENDPOINT"),
     )
