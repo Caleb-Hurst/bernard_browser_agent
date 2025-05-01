@@ -62,25 +62,8 @@ The agent features intelligent page analysis, robust error handling, and flexibl
 - **👤 User Interaction**: Request information from the user during task execution when needed
 - **🌍 Multi-Browser Support**: Connect to existing Chrome browsers or launch new instances
 
+
 ## 🚀 Quick Start
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/browser-agent.git
-cd browser-agent
-
-# Install dependencies
-pip install -r requirements.txt
-playwright install
-
-# Set your API key (replace with your actual key)
-export OPENAI_API_KEY=your_api_key_here
-
-# Run the Browser Agent
-python main.py run
-```
-
-## 📦 Installation
 
 ### Prerequisites
 
@@ -97,26 +80,13 @@ python main.py run
    cd browser-agent
    ```
 
-2. **Create a virtual environment (recommended)**
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install Python dependencies**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Install Playwright browsers**
+2. **Install Playwright browsers**
 
    ```bash
    playwright install
    ```
 
-5. **Set up environment variables**
+3. **Set up environment variables**
 
    Create a `.env` file in the project root:
 
@@ -132,25 +102,30 @@ python main.py run
    export AZURE_ENDPOINT=your_azure_endpoint
    ```
 
+4. **Run the Browser Agent**
+   ```
+   uv run main.py
+   ```
+
 ## 🎮 Usage Examples
 
 ### Basic Commands
 
 ```bash
 # Start a new browser session with the agent
-python main.py run
+uv run main.py run
 
 # Launch with a specific task
-python main.py run --task "Go to example.com and click the signup button"
+uv run main.py run --task "Go to example.com and click the signup button"
 
 # Run in headless mode (no visible browser window)
-python main.py run --headless
+uv main.py run --headless
 
 # Launch Chrome with remote debugging enabled
-python main.py launch --port 9222
+uv main.py launch --port 9222
 
 # Run with verbose debug logging
-python main.py debug
+uv main.py debug
 ```
 
 ### Interactive Examples
@@ -162,7 +137,7 @@ When the Browser Agent is running, you can provide natural language instructions
 Enter your instruction: Go to Wikipedia, search for "artificial intelligence ethics", find the main concerns section, and summarize the key points
 
 # Online Shopping Assistant
-Enter your instruction: Search for a mid-range laptop on Amazon with at least 16GB RAM, sort by customer ratings, and tell me the top three options with their prices
+uEnter your instruction: Search for a mid-range laptop on Amazon with at least 16GB RAM, sort by customer ratings, and tell me the top three options with their prices
 
 # News Aggregation
 Enter your instruction: Visit three major news sites, find articles about climate change from the past week, and create a summary of the main developments
