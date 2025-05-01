@@ -68,7 +68,7 @@ The agent features intelligent page analysis, robust error handling, and flexibl
 ### Prerequisites
 
 - Python 3.11 or higher
-- pip (Python package manager)
+- uv (Python package manager)
 - Chrome browser (for existing browser connection)
 
 ### Step-by-Step Installation
