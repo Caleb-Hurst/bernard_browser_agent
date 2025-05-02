@@ -19,7 +19,6 @@
 - [Overview](#overview)
 - [Features](#features)
 - [Quick Start](#quick-start)
-- [Installation](#installation)
 - [Usage Examples](#usage-examples)
 - [Configuration](#configuration)
 - [Browser Agent Tools](#browser-agent-tools)
@@ -137,7 +136,7 @@ When the Browser Agent is running, you can provide natural language instructions
 Enter your instruction: Go to Wikipedia, search for "artificial intelligence ethics", find the main concerns section, and summarize the key points
 
 # Online Shopping Assistant
-uEnter your instruction: Search for a mid-range laptop on Amazon with at least 16GB RAM, sort by customer ratings, and tell me the top three options with their prices
+Enter your instruction: Search for a mid-range laptop on Amazon with at least 16GB RAM, buy the best valued and rated laptop.
 
 # News Aggregation
 Enter your instruction: Visit three major news sites, find articles about climate change from the past week, and create a summary of the main developments
