@@ -7,11 +7,11 @@ This module provides utility functions for simulating human-like:
 - Click interactions with appropriate timing
 """
 
-import asyncio
+import time
 import random
 import math
 
-async def natural_mouse_move(page, start_x, start_y, end_x, end_y, steps=25):
+def natural_mouse_move(page, start_x, start_y, end_x, end_y, steps=25):
     """
     Generate a path for natural mouse movement from start to end coordinates.
     
@@ -64,7 +64,7 @@ async def natural_mouse_move(page, start_x, start_y, end_x, end_y, steps=25):
     
     return path_points
 
-async def update_cursor(page, x, y):
+def update_cursor(page, x, y):
     """
     Update the visual cursor position on the page.
     
@@ -75,14 +75,14 @@ async def update_cursor(page, x, y):
     """
     try:
         # Call the updateAICursor function in the page context
-        await page.evaluate(f"window.updateAICursor({x}, {y})")
+        page.evaluate(f"window.updateAICursor({x}, {y})")
     except Exception as e:
         print(f"Error updating cursor: {e}")
 
-async def click(page, current_x, current_y):
+def click(page, current_x, current_y):
     """Click with the virtual cursor."""
     # Change cursor appearance to indicate clicking
-    await page.evaluate("""
+    page.evaluate("""
         () => {
             const cursor = document.getElementById('ai-agent-cursor');
             if (cursor) {
@@ -95,7 +95,7 @@ async def click(page, current_x, current_y):
     """)
 
     # Execute DOM click via JavaScript with special handling for input fields
-    click_result = await page.evaluate("""
+    click_result = page.evaluate("""
         ({x, y}) => {
             // Calculate viewport-relative coordinates
             const viewX = x - window.pageXOffset;

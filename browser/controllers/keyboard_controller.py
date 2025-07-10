@@ -3,20 +3,20 @@ Keyboard controller for browser interactions related to typing and keyboard even
 """
 
 import re
-import asyncio
+import time
 import random
 from langchain_core.tools import tool
 
 # Global variable to store the page
 page = None
 
-async def initialize(browser_page):
+def initialize(browser_page):
     """Initialize the keyboard controller."""
     global page
     page = browser_page
 
 @tool
-async def keyboard_action(input_text) -> str:
+def keyboard_action(input_text) -> str:
     """
     Simulates keyboard shortcuts and special keys (not for typing text).
     
@@ -94,8 +94,8 @@ async def keyboard_action(input_text) -> str:
                 if single_key not in special_keys and not re.match(r'hold\s+(\w+),?\s+(?:press\s+)?(\w+)', single_key):
                     return f"Error: '{single_key}' is not a valid special key or combination. Use fill_input for typing text."
                 
-                result = await _execute_special_key_action(single_key, special_keys)
-                await asyncio.sleep(1)  # Small delay between actions
+                result = _execute_special_key_action(single_key, special_keys)
+                time.sleep(1)  # Small delay between actions
                 results.append(result)
             
             return "Executed key sequence: " + " → ".join(results)
@@ -107,12 +107,12 @@ async def keyboard_action(input_text) -> str:
             if normalized_input not in special_keys and not re.match(r'hold\s+(\w+),?\s+(?:press\s+)?(\w+)', normalized_input):
                 return f"Error: '{normalized_input}' is not a valid special key or combination. Use fill_input for typing text."
             
-            return await _execute_special_key_action(normalized_input, special_keys)
+            return _execute_special_key_action(normalized_input, special_keys)
             
     except Exception as e:
         return f"Error with keyboard action: {str(e)}"
 
-async def _execute_special_key_action(key_input, special_keys):
+def _execute_special_key_action(key_input, special_keys):
     """Execute a special key action (helper for keyboard_action)."""
     if key_input in special_keys:
         key = special_keys[key_input]
@@ -120,9 +120,9 @@ async def _execute_special_key_action(key_input, special_keys):
         
         # Handle special case for space
         if (key == " "):
-            await page.keyboard.press("Space")
+            page.keyboard.press("Space")
         else:
-            await page.keyboard.press(key)
+            page.keyboard.press(key)
             
         return f"Pressed {key_input}"
     
@@ -134,11 +134,11 @@ async def _execute_special_key_action(key_input, special_keys):
         key_to_press = special_keys.get(key.lower(), key.capitalize())
         
         print(f"Holding {modifier_key} and pressing {key_to_press}")
-        await page.keyboard.down(modifier_key)
-        await asyncio.sleep(0.5)
-        await page.keyboard.press(key_to_press)
-        await asyncio.sleep(0.5)
-        await page.keyboard.up(modifier_key)
+        page.keyboard.down(modifier_key)
+        time.sleep(0.5)
+        page.keyboard.press(key_to_press)
+        time.sleep(0.5)
+        page.keyboard.up(modifier_key)
         
         return f"Held {modifier} and pressed {key}"
     

@@ -3,7 +3,7 @@ Element controller for browser interactions related to finding and interacting w
 """
 
 import re
-import asyncio
+import time
 import random
 import json
 from langchain_core.tools import tool
@@ -23,7 +23,7 @@ def _import_helpers():
     )
     return natural_mouse_move, update_cursor, click
 
-async def initialize(browser_page):
+def initialize(browser_page):
     """Initialize the element controller."""
     global page, current_x, current_y
     page = browser_page
@@ -32,10 +32,10 @@ async def initialize(browser_page):
     
     # Initialize cursor position
     natural_mouse_move, update_cursor, _ = _import_helpers()
-    await _update_cursor(current_x, current_y)
+    _update_cursor(current_x, current_y)
 
 @tool
-async def click(target_description) -> str:
+def click(target_description) -> str:
     """
     Simulates a natural human-like click on any webpage element with precise targeting.
     
@@ -129,12 +129,12 @@ async def click(target_description) -> str:
         # If no element found, try scrolling and searching again
         if not element and page_elements:
             print("No matching element found. Attempting to scroll and search...")
-            await scroll("down")
-            await asyncio.sleep(1)
+            scroll("down")
+            time.sleep(1)
             
             # Re-analyze the page after scrolling
             from browser.analyzers.page_analyzer import analyze_page
-            await analyze_page()
+            analyze_page()
             
             # Search again in the updated page_elements
             for idx, elem in enumerate(page_elements):
@@ -184,14 +184,14 @@ async def click(target_description) -> str:
         
         # Ensure element is visible in viewport (scroll if needed)
         if not element.get('inViewport', False):
-            await _scroll_element_into_view(element)
+            _scroll_element_into_view(element)
         
         # Move cursor to element for visual feedback before clicking
         x, y = element['center_x'], element['center_y']
-        await _natural_mouse_move(x, y)
+        _natural_mouse_move(x, y)
         
         # Perform click
-        result = await _click(x, y)
+        result = _click(x, y)
         
         return f"Clicked on element: {element['type']} with text '{element['text']}'"
         
@@ -200,7 +200,7 @@ async def click(target_description) -> str:
         return f"Error clicking on element: {str(e)}"
 
 @tool
-async def fill_input(json_input):
+def fill_input(json_input):
     """
     Fills an input field with text without clicking first.
     
@@ -286,8 +286,8 @@ async def fill_input(json_input):
         
         # Ensure element is visible in viewport (scroll if needed)
         if not element.get('inViewport', False):
-            await _scroll_element_into_view(element)
-            await asyncio.sleep(0.8)  # Wait for scroll to complete
+            _scroll_element_into_view(element)
+            time.sleep(0.8)  # Wait for scroll to complete
         
         # Get the selector for the element
         selector = element.get('cssSelector')
@@ -298,7 +298,7 @@ async def fill_input(json_input):
         # Use DOM manipulation directly to fill the input field instead of page.fill
         try:
             # Fill the input field using direct DOM manipulation
-            fill_result = await page.evaluate("""
+            fill_result = page.evaluate("""
                 (params) => {
                     const { selector, value } = params;
                     try {
@@ -427,7 +427,7 @@ async def fill_input(json_input):
             if not fill_result.get('success'):
                 print(f"DOM fill failed: {fill_result.get('error')}. Trying fallback method.")
                 # Fallback to standard Playwright fill method
-                await page.fill(selector, value)
+                page.fill(selector, value)
                 
             
             return f"Filled input field: {element['type']} with text '{element['text']}' with value: '{value}'"
@@ -435,7 +435,7 @@ async def fill_input(json_input):
             print(f"Error in DOM fill, using fallback: {e}")
             try:
                 # Last resort - use standard Playwright fill
-                await page.fill(selector, value)
+                page.fill(selector, value)
                 return f"Filled input field: {element['type']} with text '{element['text']}' with value: '{value}' (using fallback)"
             except Exception as fill_err:
                 print(f"All filling methods failed: {fill_err}")
@@ -445,7 +445,7 @@ async def fill_input(json_input):
         return f"Error filling input field: {str(e)}"
 
 @tool
-async def select_option(json_input):
+def select_option(json_input):
     """
     Selects an option from a dropdown/select element.
     
@@ -570,12 +570,12 @@ async def select_option(json_input):
         # If no element found, try scrolling and searching again
         if not element and page_elements:
             print("No matching element found. Attempting to scroll and search...")
-            await scroll("down")
-            await asyncio.sleep(1)
+            scroll("down")
+            time.sleep(1)
             
             # Re-analyze the page after scrolling
             from browser.analyzers.page_analyzer import analyze_page
-            await analyze_page()
+            analyze_page()
             
             # Search again in the updated page_elements
             for idx, elem in enumerate(page_elements):
@@ -625,8 +625,8 @@ async def select_option(json_input):
         
         # Ensure element is visible in viewport (scroll if needed)
         if not element.get('inViewport', False):
-            await _scroll_element_into_view(element)
-            await asyncio.sleep(0.8)  # Wait for scroll to complete
+            _scroll_element_into_view(element)
+            time.sleep(0.8)  # Wait for scroll to complete
         
         # Get the selector for the element
         selector = element.get('cssSelector')
@@ -640,18 +640,18 @@ async def select_option(json_input):
             # Try selecting by label text first, then by value
             try:
                 # Try to select by visible text
-                await page.select_option(selector, label=option_value)
+                page.select_option(selector, label=option_value)
                 return f"Selected option '{option_value}' from dropdown: {element['text']} by visible text"
             except Exception as e1:
                 try:
                     # If that fails, try selecting by value attribute
-                    await page.select_option(selector, value=option_value)
+                    page.select_option(selector, value=option_value)
                     return f"Selected option with value '{option_value}' from dropdown: {element['text']}"
                 except Exception as e2:
                     try:
                         # Last try: by index if it's a number
                         if option_value.isdigit():
-                            await page.select_option(selector, index=int(option_value))
+                            page.select_option(selector, index=int(option_value))
                             return f"Selected option at index {option_value} from dropdown: {element['text']}"
                         else:
                             raise Exception(f"Could not select option by text or value: {e1}, {e2}")
@@ -661,12 +661,12 @@ async def select_option(json_input):
             # For non-standard dropdowns (like custom UI components), use the click approach
             # First click on the dropdown to open it
             x, y = element['center_x'], element['center_y']
-            await _natural_mouse_move(x, y)
-            await _click(x, y)
-            await asyncio.sleep(1)  # Wait for dropdown to open
+            _natural_mouse_move(x, y)
+            _click(x, y)
+            time.sleep(1)  # Wait for dropdown to open
             
             # Then try to find and click the option
-            option_element = await page.evaluate('''
+            option_element = page.evaluate('''
                 (optionText) => {
                     // First try matching by exact text
                     const options = Array.from(document.querySelectorAll('li, div[role="option"], option, .dropdown-item'));
@@ -701,8 +701,8 @@ async def select_option(json_input):
             
             if option_element:
                 # Click on the option
-                await _natural_mouse_move(option_element['x'], option_element['y'])
-                await _click(option_element['x'], option_element['y'])
+                _natural_mouse_move(option_element['x'], option_element['y'])
+                _click(option_element['x'], option_element['y'])
                 return f"Clicked on option '{option_element['text']}' in dropdown: {element['text']}"
             else:
                 return f"Could not find option '{option_value}' in the opened dropdown: {element['text']}"
@@ -712,12 +712,12 @@ async def select_option(json_input):
         return f"Error selecting option from dropdown: {str(e)}"
 
 # Helper methods
-async def _click(x, y):
+def _click(x, y):
     """Click with the cursor."""
     _, _, click = _import_helpers()
-    await click(page, x, y)
+    click(page, x, y)
 
-async def _natural_mouse_move(target_x, target_y):
+def _natural_mouse_move(target_x, target_y):
     """Move the virtual mouse in a natural way, simulating human movement."""
     global current_x, current_y
     
@@ -729,26 +729,26 @@ async def _natural_mouse_move(target_x, target_y):
     natural_mouse_move, _, _ = _import_helpers()
     
     # Get path points
-    path_points = await natural_mouse_move(
+    path_points = natural_mouse_move(
         page, start_x, start_y, target_x, target_y
     )
     
     # Execute the movement
     for x, y in path_points:
-        await _update_cursor(x, y)
+        _update_cursor(x, y)
         
         # Slight delay between movements with variable timing
-        await asyncio.sleep(0.01 + random.uniform(0, 0.02))
+        time.sleep(0.01 + random.uniform(0, 0.02))
         
         # Occasionally pause briefly (simulating human hesitation)
         if (random.random() < 0.05):  # 5% chance
-            await asyncio.sleep(random.uniform(0.1, 0.3))
+            time.sleep(random.uniform(0.1, 0.3))
     
     # Update final position
     current_x = target_x
     current_y = target_y
 
-async def _update_cursor(x, y):
+def _update_cursor(x, y):
     """Update the virtual cursor position."""
     global current_x, current_y
     current_x = x
@@ -756,25 +756,25 @@ async def _update_cursor(x, y):
     
     # Get update_cursor helper
     _, update_cursor, _ = _import_helpers()
-    await update_cursor(page, x, y)
+    update_cursor(page, x, y)
 
-async def _handle_new_tab(popup):
+def _handle_new_tab(popup):
     """Handle new tab popup events by getting URL and navigating in main tab instead."""
     try:
         # Wait briefly for the popup to initialize
-        await asyncio.sleep(0.5)
+        time.sleep(0.5)
         # Get the URL of the popup
         popup_url = popup.url
         if (popup_url and popup_url != "about:blank"):
             # Close the popup
-            await popup.close()
+            popup.close()
             # Navigate the main page to that URL instead
-            await page.goto(popup_url)
+            page.goto(popup_url)
             print(f"Redirected popup to main tab: {popup_url}")
     except Exception as e:
         print(f"Error handling popup: {e}")
         # Try to close the popup anyway
         try:
-            await popup.close()
+            popup.close()
         except:
             pass

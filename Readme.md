@@ -1,6 +1,5 @@
 # 🌐 Browser Agent
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/browser-agent)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
@@ -18,7 +17,98 @@
 
 - [Overview](#overview)
 - [Features](#features)
+- [Installation](#installation)
 - [Quick Start](#quick-start)
+- [CLI Commands](#cli-commands)
+- [Profile Management](#profile-management)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
+## 🚀 Installation
+
+### Install from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/browser-agent.git
+cd browser-agent
+
+# Install dependencies (recommended: uv)
+uv sync
+
+# Alternative: Install with pip
+# pip install -r requirements.txt
+
+# Install Playwright browsers
+uv run playwright install chromium
+# Or with pip: playwright install chromium
+```
+
+## 🏃‍♂️ Quick Start
+
+Run the browser agent using uv (recommended) or Python:
+
+```bash
+# Check version and system info
+uv run main.py version
+# Or: python main.py version
+
+# Run diagnostics
+uv run main.py diagnose
+# Or: python main.py diagnose
+
+# Launch Chrome with a clean temporary profile
+uv run main.py launch --profile temp
+# Or: python main.py launch --profile temp
+
+# Run the AI agent with a specific task
+uv run main.py run --task "Navigate to google.com and search for 'AI news'"
+# Or: python main.py run --task "Navigate to google.com and search for 'AI news'"
+
+# Get help
+uv run main.py help
+# Or: python main.py help
+```
+
+## 🎯 CLI Commands
+
+The browser agent provides comprehensive commands for browser automation:
+
+### Core Commands
+
+- `uv run main.py run` - Run the AI agent with a specific task
+- `uv run main.py launch` - Launch Chrome with debugging enabled
+- `uv run main.py connect` - Connect to an existing Chrome debug session
+
+### Profile Management
+
+- `uv run main.py profiles list` - List available browser profiles
+- `uv run main.py profiles create` - Create a new profile
+- `uv run main.py profiles remove` - Remove a profile
+- `uv run main.py profiles info` - Get profile information
+
+### System & Diagnostics
+
+- `uv run main.py diagnose` - Run system diagnostics
+- `uv run main.py clean` - Clean temporary files and profiles
+- `uv run main.py version` - Show version information
+
+### Configuration
+
+- `uv run main.py config set` - Set configuration values
+- `uv run main.py config get` - Get configuration values
+- `uv run main.py config reset` - Reset configuration to defaults
+
+### Help & Debug
+
+- `uv run main.py help` - Show comprehensive help
+- `uv run main.py debug` - Enable debug mode for troubleshooting
+
+> **Note:** You can replace `uv run` with `python` if you prefer using pip instead of uv.
+- [Quick Start](#quick-start)
+- [Installation](#installation)
 - [Usage Examples](#usage-examples)
 - [Configuration](#configuration)
 - [Browser Agent Tools](#browser-agent-tools)
@@ -67,8 +157,9 @@ The agent features intelligent page analysis, robust error handling, and flexibl
 ### Prerequisites
 
 - Python 3.11 or higher
-- uv (Python package manager)
-- Chrome browser (for existing browser connection)
+- uv (Python package manager) - **recommended** - [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+- OR pip (alternative Python package manager)
+- Chrome browser
 
 ### Step-by-Step Installation
 
@@ -79,13 +170,27 @@ The agent features intelligent page analysis, robust error handling, and flexibl
    cd browser-agent
    ```
 
-2. **Install Playwright browsers**
+2. **Install dependencies**
 
    ```bash
+   # Recommended: Use uv
+   uv sync
+   
+   # Alternative: Use pip
+   pip install -r requirements.txt
+   ```
+
+3. **Install Playwright browsers**
+
+   ```bash
+   # With uv
+   uv run playwright install
+   
+   # With pip
    playwright install
    ```
 
-3. **Set up environment variables**
+4. **Set up environment variables**
 
    Create a `.env` file in the project root:
 
@@ -101,9 +206,13 @@ The agent features intelligent page analysis, robust error handling, and flexibl
    export AZURE_ENDPOINT=your_azure_endpoint
    ```
 
-4. **Run the Browser Agent**
-   ```
+5. **Run the Browser Agent**
+   ```bash
+   # With uv (recommended)
    uv run main.py
+   
+   # With python
+   python main.py
    ```
 
 ## 🎮 Usage Examples
@@ -113,18 +222,23 @@ The agent features intelligent page analysis, robust error handling, and flexibl
 ```bash
 # Start a new browser session with the agent
 uv run main.py run
+# Or: python main.py run
 
 # Launch with a specific task
 uv run main.py run --task "Go to example.com and click the signup button"
+# Or: python main.py run --task "Go to example.com and click the signup button"
 
 # Run in headless mode (no visible browser window)
-uv main.py run --headless
+uv run main.py run --headless
+# Or: python main.py run --headless
 
 # Launch Chrome with remote debugging enabled
-uv main.py launch --port 9222
+uv run main.py launch --port 9222
+# Or: python main.py launch --port 9222
 
 # Run with verbose debug logging
-uv main.py debug
+uv run main.py debug
+# Or: python main.py debug
 ```
 
 ### Interactive Examples
@@ -136,7 +250,7 @@ When the Browser Agent is running, you can provide natural language instructions
 Enter your instruction: Go to Wikipedia, search for "artificial intelligence ethics", find the main concerns section, and summarize the key points
 
 # Online Shopping Assistant
-Enter your instruction: Search for a mid-range laptop on Amazon with at least 16GB RAM, buy the best valued and rated laptop.
+uEnter your instruction: Search for a mid-range laptop on Amazon with at least 16GB RAM, sort by customer ratings, and tell me the top three options with their prices
 
 # News Aggregation
 Enter your instruction: Visit three major news sites, find articles about climate change from the past week, and create a summary of the main developments
@@ -342,7 +456,8 @@ You can connect the Browser Agent to an already running Chrome instance:
 1. Launch Chrome with remote debugging enabled:
 
    ```bash
-   python main.py launch --port 9222
+   uv run main.py launch --port 9222
+   # Or: python main.py launch --port 9222
    ```
 
 2. Configure the Browser Agent to use the existing instance:
@@ -357,7 +472,8 @@ You can connect the Browser Agent to an already running Chrome instance:
 
 3. Run the Browser Agent:
    ```bash
-   python main.py run
+   uv run main.py run
+   # Or: python main.py run
    ```
 
 ### Creating Multi-Step Automated Workflows
@@ -365,9 +481,14 @@ You can connect the Browser Agent to an already running Chrome instance:
 You can chain multiple instructions into a single workflow:
 
 ```bash
-python main.py run --task "Go to gmail.com, wait for the login page,
+uv run main.py run --task "Go to gmail.com, wait for the login page,
 enter the username 'test@example.com', click next, wait for the password field,
 ask me for the password, enter it, and click sign in"
+
+# Or with python:
+# python main.py run --task "Go to gmail.com, wait for the login page,
+# enter the username 'test@example.com', click next, wait for the password field,
+# ask me for the password, enter it, and click sign in"
 ```
 
 ### User Interaction During Execution
@@ -389,7 +510,7 @@ ask_user('{"prompt":"Please enter your 2FA code","type":"text"}')
 **Solutions**:
 
 1. Ensure Chrome is not already running with the same debugging port
-2. Try a different port: `python main.py launch --port 9223`
+2. Try a different port: `uv run main.py launch --port 9223` (or `python main.py launch --port 9223`)
 3. Check firewall settings that might block the connection
 4. Verify Chrome is installed in the default location or set the path manually
 </details>

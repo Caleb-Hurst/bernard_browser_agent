@@ -3,12 +3,12 @@ DOM helper utilities for working with browser elements.
 """
 
 import re
-import asyncio
+import time
 
 # Global variable to store the page
 page = None
 
-async def initialize(browser_page):
+def initialize(browser_page):
     """Initialize the DOM helpers module."""
     global page
     page = browser_page
@@ -77,7 +77,7 @@ def _parse_click_target(target_description):
     return target_id, target_type, target_text, is_structured
 
 
-async def _scroll_element_into_view(element):
+def _scroll_element_into_view(element):
     """
     Scroll an element into view using DOM methods.
     
@@ -86,7 +86,7 @@ async def _scroll_element_into_view(element):
     """
     try:
         # Use scrollIntoView via JS for more reliable scrolling
-        await page.evaluate("""
+        page.evaluate("""
             (coords) => {
                 const element = document.elementFromPoint(
                     coords.x - window.pageXOffset, 
@@ -118,7 +118,7 @@ async def _scroll_element_into_view(element):
     except Exception as e:
         print(f"Error scrolling element into view: {e}")
         # Fallback to regular scrolling
-        await page.evaluate(f"""
+        page.evaluate(f"""
             () => window.scrollTo({{
                 top: {element['center_y']} - (window.innerHeight / 2),
                 behavior: 'smooth'

@@ -2,20 +2,20 @@
 Page analyzer for examining web page content and structure.
 """
 
-import asyncio
+import time
 from langchain_core.tools import tool
 
 # Global variables
 page = None
 page_elements = []
 
-async def initialize(browser_page):
+def initialize(browser_page):
     """Initialize the page analyzer."""
     global page
     page = browser_page
 
 @tool
-async def analyze_page():
+def analyze_page():
     """
     Extracts page content and interactive elements with ID references.
     
@@ -35,7 +35,7 @@ async def analyze_page():
             print("Analyzing page content...")
             
             # Use JavaScript to directly analyze the DOM
-            page_content = await page.evaluate("""
+            page_content = page.evaluate("""
             () => {
                 // Helper function to check if element is visible
                 function isVisible(el) {

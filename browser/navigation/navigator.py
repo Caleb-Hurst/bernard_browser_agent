@@ -2,19 +2,19 @@
 Navigator module for browser page navigation.
 """
 
-import asyncio
+import time
 from langchain_core.tools import tool
 
 # Global variable to store the page
 page = None
 
-async def initialize(browser_page):
+def initialize(browser_page):
     """Initialize the browser navigator."""
     global page
     page = browser_page
 
 @tool
-async def navigate(url) -> str:
+def navigate(url) -> str:
     """
     Navigates browser to a specified URL.
     
@@ -45,7 +45,7 @@ async def navigate(url) -> str:
         # STEP 1: Direct navigation attempt
         try:
             print(f"Trying direct navigation to {url}")
-            await page.goto(url, timeout=20000)
+            page.goto(url, timeout=20000)
             current_url = page.url
             
             # Check if navigation was successful
@@ -63,7 +63,7 @@ async def navigate(url) -> str:
         return f"Error navigating to {url}: {str(e)}"
 
 @tool
-async def go_back() -> str:
+def go_back() -> str:
     """
     Navigates back to the previous page in browser history.
     
@@ -85,7 +85,7 @@ async def go_back() -> str:
         current_url = page.url
         
         # Check if we can go back
-        can_go_back = await page.evaluate("() => window.history.length > 1")
+        can_go_back = page.evaluate("() => window.history.length > 1")
         
         if not can_go_back:
             return "Cannot go back - no previous page in history"
@@ -93,18 +93,18 @@ async def go_back() -> str:
         print("Navigating back to previous page...")
         
         # Try using browser back button first (most reliable)
-        await page.go_back(wait_until="domcontentloaded", timeout=10000)
+        page.go_back(wait_until="domcontentloaded", timeout=10000)
         
         # Wait for navigation to complete
-        await asyncio.sleep(1.5)
+        time.sleep(1.5)
         
         # Verify we actually navigated to a different page
         new_url = page.url
         if (new_url == current_url):
             # If URL didn't change, try alternative method
             print("Back navigation didn't change URL, trying alternative method...")
-            await page.evaluate("() => window.history.back()")
-            await asyncio.sleep(1.5)
+            page.evaluate("() => window.history.back()")
+            time.sleep(1.5)
             new_url = page.url
         
         # Final verification

@@ -2,7 +2,7 @@
 Main browser controller that serves as the interface to all browser functionality.
 """
 
-import asyncio
+import time
 from browser.controllers.element_controller import click, fill_input, select_option
 from browser.controllers.keyboard_controller import keyboard_action
 from browser.analyzers.page_analyzer import analyze_page
@@ -13,7 +13,7 @@ from browser.utils.user_interaction import ask_user
 # Global page reference
 page = None
 
-async def initialize(browser_page):
+def initialize(browser_page):
     # Import locally to avoid circular imports
     from browser.controllers.element_controller import initialize as init_element
     from browser.controllers.keyboard_controller import initialize as init_keyboard
@@ -27,34 +27,32 @@ async def initialize(browser_page):
     page = browser_page
     
     # Initialize all sub-controllers
-    await init_element(page)
-    await init_keyboard(page)
-    await init_analyzer(page)
-    await init_navigator(page)
-    await init_scroll(page)
-    await init_dom_helpers(page)
+    init_element(page)
+    init_keyboard(page)
+    init_analyzer(page)
+    init_navigator(page)
+    init_scroll(page)
+    init_dom_helpers(page)
     init_user_interaction()
     
     print("Browser controller initialized successfully")
 
-async def close():
+def close():
     try:
-        await page.context.browser.close()
+        page.context.browser.close()
         return "Browser closed successfully"
     except Exception as e:
         return f"Error closing browser: {str(e)}"
 
 def get_browser_tools():
-    browser_tools = [
+    return [
         analyze_page,
         click,
-        keyboard_action,
         fill_input,
         select_option,
-        go_back,
+        keyboard_action,
         navigate,
+        go_back,
         scroll,
-        ask_user,
+        ask_user
     ]
-    
-    return browser_tools

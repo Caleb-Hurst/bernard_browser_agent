@@ -2,13 +2,13 @@
 User interaction utilities for requesting information or permissions from the user.
 """
 
-import asyncio
+import time
 from langchain_core.tools import tool
 
 # This tool doesn't need a page reference since it interacts with the terminal directly
 
 @tool
-async def ask_user(json_input) -> str:
+def ask_user(json_input) -> str:
     """
     Requests a single piece of information from the user. Use for one input at a time.
     

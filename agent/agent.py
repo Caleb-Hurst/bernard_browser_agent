@@ -1,5 +1,4 @@
 from typing import Annotated
-import asyncio
 import os
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -15,7 +14,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
     
-async def create_agent(api_key: str):
+def create_agent(api_key: str):
     # Initialize Azure OpenAI
     llm = AzureChatOpenAI(
         model_name="gpt-4o",
@@ -105,23 +104,62 @@ Response : [Provide the specific information requested by the user, including an
 
 """
 
-    # Create async node for chatbot
-    async def chatbot(state: AgentState):
+    # Create synchronous node for chatbot
+    def chatbot(state: AgentState):
         # If no message exists, return no change to state
         if not state.get("messages", []):
             return {"messages": []}
             
-        # Process with LLM asynchronously
-        response = await llm_with_tools.ainvoke(state["messages"])
+        # Process with LLM synchronously
+        response = llm_with_tools.invoke(state["messages"])
         return {"messages": [response]}
 
-    # Set up the graph
+    # Set up the graph with custom tool handling
     graph_builder = StateGraph(AgentState)
     
     # Add nodes
     graph_builder.add_node("chatbot", chatbot)
-    tool_node = ToolNode(tools=tools)
-    graph_builder.add_node("tools", tool_node)
+    
+    # Custom tool execution node
+    def tool_executor(state: AgentState):
+        """Execute tools synchronously without LangGraph's ToolNode."""
+        last_message = state["messages"][-1]
+        
+        # Check if the last message has tool calls
+        if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+            tool_messages = []
+            
+            for tool_call in last_message.tool_calls:
+                tool_name = tool_call["name"]
+                tool_args = tool_call["args"]
+                tool_id = tool_call["id"]
+                
+                # Find and execute the tool
+                tool_result = None
+                for tool in tools:
+                    if tool.name == tool_name:
+                        try:
+                            # Execute tool synchronously
+                            tool_result = tool.invoke(tool_args)
+                        except Exception as e:
+                            tool_result = f"Error executing {tool_name}: {str(e)}"
+                        break
+                
+                if tool_result is None:
+                    tool_result = f"Tool {tool_name} not found"
+                
+                # Create tool message
+                from langchain_core.messages import ToolMessage
+                tool_messages.append(ToolMessage(
+                    content=str(tool_result),
+                    tool_call_id=tool_id
+                ))
+            
+            return {"messages": tool_messages}
+        
+        return {"messages": []}
+    
+    graph_builder.add_node("tools", tool_executor)
     
     # Add edges
     graph_builder.add_edge(START, "chatbot")
@@ -131,17 +169,17 @@ Response : [Provide the specific information requested by the user, including an
     )
     graph_builder.add_edge("tools", "chatbot")
     
-    # Compile the graph
+    # Compile the graph (synchronous)
     from langgraph.checkpoint.memory import MemorySaver
     memory = MemorySaver()
     graph = graph_builder.compile(checkpointer=memory)
     
-    # Wrap the graph with an interface
+    # Wrap the graph with a synchronous interface
     class LangGraphAgent:
         def __init__(self, graph):
             self.graph = graph
             
-        async def ainvoke(self, input_text, thread_id="main"):
+        def invoke(self, input_text, thread_id="main"):
             config = {"configurable": {"thread_id": thread_id}}
             
             # Start with system message and user input
@@ -152,8 +190,8 @@ Response : [Provide the specific information requested by the user, including an
                 ]
             }
             
-            # Run the graph asynchronously
-            result = await self.graph.ainvoke(state, config)
+            # Run the graph synchronously
+            result = self.graph.invoke(state, config)
             
             # Format the result
             output = result["messages"][-1].content
@@ -165,18 +203,7 @@ Response : [Provide the specific information requested by the user, including an
                 "messages": result["messages"]
             }
         
-        def invoke(self, input_text, thread_id="main"):
-            # Get the current event loop or create a new one
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
-            # Run the async invoke in the event loop
-            return loop.run_until_complete(self.ainvoke(input_text, thread_id))
-            
-        async def astream(self, input_text, thread_id="main"):
+        def stream(self, input_text, thread_id="main"):
             config = {"configurable": {"thread_id": thread_id}}
             
             # Start with system message and user input
@@ -187,28 +214,12 @@ Response : [Provide the specific information requested by the user, including an
                 ]
             }
             
-            # Stream the graph execution asynchronously
-            async for event in self.graph.astream(state, config, stream_mode="updates"):
+            # Stream the graph execution synchronously
+            results = []
+            for event in self.graph.stream(state, config, stream_mode="updates"):
                 if "messages" in event:
                     event["messages"][-1].pretty_print()
-                    
-        def stream(self, input_text, thread_id="main"):
-            # Get the current event loop or create a new one
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                
-            # Create a generator that yields from the async generator
-            def sync_generator():
-                async_gen = self.astream(input_text, thread_id)
-                while True:
-                    try:
-                        yield loop.run_until_complete(async_gen.__anext__())
-                    except StopAsyncIteration:
-                        break
-                        
-            return sync_generator()
+                    results.append(event)
+            return results
     
     return LangGraphAgent(graph)

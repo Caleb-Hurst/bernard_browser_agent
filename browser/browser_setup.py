@@ -1,4 +1,4 @@
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 
 def inject_cursor_script():
     return """
@@ -39,8 +39,8 @@ def inject_cursor_script():
     };
     """
 
-async def initialize_browser(options, connection_options=None):
-    playwright = await async_playwright().start()
+def initialize_browser(options, connection_options=None):
+    playwright = sync_playwright().start()
     
     # Default connection options if none provided
     if connection_options is None:
@@ -57,17 +57,17 @@ async def initialize_browser(options, connection_options=None):
     if connection_options.get("use_existing", False):
         try:
             print(f"Attempting to connect to existing browser at {connection_options['cdp_endpoint']}...")
-            browser = await playwright.chromium.connect_over_cdp(connection_options["cdp_endpoint"])
+            browser = playwright.chromium.connect_over_cdp(connection_options["cdp_endpoint"])
             print("Successfully connected to existing Chrome browser")
             
             # Get the default context or create a new one
             if (len(browser.contexts) > 0):
                 context = browser.contexts[0]
             else:
-                context = await browser.new_context(viewport=None)
+                context = browser.new_context(viewport=None)
                 
             # Create a new page in the existing browser
-            page = await context.new_page()
+            page = context.new_page()
             
         except Exception as e:
             print(f"Failed to connect to existing browser: {str(e)}")
@@ -83,14 +83,14 @@ async def initialize_browser(options, connection_options=None):
     # Launch a new browser if needed
     if browser is None:
         print(f"Launching new browser with options: {options}")
-        browser = await playwright.chromium.launch(**options)
-        page = await browser.new_page(viewport=None)
+        browser = playwright.chromium.launch(**options)
+        page = browser.new_page(viewport=None)
     
     # Inject cursor visualization CSS and JavaScript
-    await page.add_init_script(inject_cursor_script())
+    page.add_init_script(inject_cursor_script())
     
     # Add script to prevent new tabs from opening
-    await page.add_init_script("""
+    page.add_init_script("""
         window.open = function(url, name, features) {
             console.log('Intercepted window.open call for URL:', url);
             if (url) {
@@ -111,10 +111,10 @@ async def initialize_browser(options, connection_options=None):
     """)
     
     # Navigate to a blank page first to ensure script loading
-    await page.goto('about:blank')
+    page.goto('about:blank')
     
     # Ensure cursor is created and function is available
-    await page.evaluate("""
+    page.evaluate("""
         () => {
             if (!document.getElementById('ai-agent-cursor')) {
                 const cursor = document.createElement('div');
@@ -146,22 +146,22 @@ async def initialize_browser(options, connection_options=None):
         }
     """)
     
-    user_agent = await page.evaluate('() => navigator.userAgent')
+    user_agent = page.evaluate('() => navigator.userAgent')
     print(f"Browser setup successful. User agent: {user_agent}")
     
     return playwright, browser, page
 
-async def close_browser(playwright, browser, is_connected=False):
+def close_browser(playwright, browser, is_connected=False):
     try:
         if is_connected:
             # If connected to existing browser, just disconnect
             print("Disconnecting from browser (browser will remain open)")
-            await playwright.stop()
+            playwright.stop()
             return "Disconnected from browser successfully"
         else:
             # If browser was launched by us, close it
-            await browser.close()
-            await playwright.stop()
+            browser.close()
+            playwright.stop()
             return "Browser closed successfully"
     except Exception as e:
         return f"Error closing browser: {str(e)}"
