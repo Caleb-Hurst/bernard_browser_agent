@@ -17,7 +17,7 @@ def initialize(browser_page):
 @tool
 def scroll(direction="down") -> str:
     """
-    Scrolls the page in the specified direction.
+    Scrolls the page in the specified direction with position awareness.
     
     Parameters:
         direction: Where to scroll
@@ -26,86 +26,132 @@ def scroll(direction="down") -> str:
             - "top": Jumps to the top of the page
             - "bottom": Jumps to the bottom of the page
     
-    Returns: Status message indicating scroll result
+    Returns: Status message indicating scroll result or current position
     """
     try:
         # Clean input and handle quoted strings
+        print(f"Scroll direction received: {direction}")
         if isinstance(direction, str):
             direction = direction.lower().strip("'\"").strip()
         
-        # Get viewport size with fallback
-        viewport = page.viewport_size
+        # Get current scroll position and page dimensions
+        scroll_info = page.evaluate("""
+            () => {
+                return {
+                    currentY: window.pageYOffset || document.documentElement.scrollTop,
+                    maxY: Math.max(
+                        document.body.scrollHeight,
+                        document.body.offsetHeight,
+                        document.documentElement.clientHeight,
+                        document.documentElement.scrollHeight,
+                        document.documentElement.offsetHeight
+                    ) - window.innerHeight,
+                    viewportHeight: window.innerHeight,
+                    documentHeight: Math.max(
+                        document.body.scrollHeight,
+                        document.body.offsetHeight,
+                        document.documentElement.clientHeight,
+                        document.documentElement.scrollHeight,
+                        document.documentElement.offsetHeight
+                    )
+                };
+            }
+        """)
         
-        # Check if viewport is valid before accessing its properties
-        if (viewport is None):
-            # Fallback to direct JavaScript scrolling when viewport size can't be determined
-            if (direction == "down"):
-                page.evaluate("window.scrollBy(0, 300)")
-                return "Scrolled down (fallback method)"
-            elif (direction == "up"):
-                page.evaluate("window.scrollBy(0, -300)")
-                return "Scrolled up (fallback method)"
-            elif (direction == "top"):
-                page.evaluate("window.scrollTo(0, 0)")
-                return "Scrolled to top"
-            elif (direction == "bottom"):
-                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                return "Scrolled to bottom"
+        current_y = scroll_info['currentY']
+        max_y = scroll_info['maxY']
+        viewport_height = scroll_info['viewportHeight']
+        
+        # Handle different scroll directions with position checking
+        if direction == "down":
+            # Check if already at bottom (within 10px tolerance for floating point precision)
+            if current_y >= max_y - 10:
+                return "Already at the bottom of the page - cannot scroll down further"
+            
+            # Calculate how much we can actually scroll down
+            remaining_scroll = max_y - current_y
+            scroll_amount = min(viewport_height, remaining_scroll)
+            
+            page.evaluate(f"window.scrollBy(0, {scroll_amount})")
+            
+            # Check if we reached the bottom after scrolling
+            new_position = page.evaluate("window.pageYOffset || document.documentElement.scrollTop")
+            if new_position >= max_y - 10:
+                return "Scrolled down and reached the bottom of the page"
             else:
-                page.evaluate("window.scrollBy(0, 300)")
-                return f"Invalid direction '{direction}', defaulted to scrolling down"
-        
-        # If viewport is valid, use normal mouse wheel movement
-        center_x = viewport["width"] / 2
-        center_y = viewport["height"] / 2
-        
-        # Get element controller's mouse movement function
-        from browser.controllers.element_controller import _natural_mouse_move
-        _natural_mouse_move(center_x, center_y)
-        time.sleep(0.3)
-        
-        # Determine scroll amount and direction
-        if (direction == "down"):
-            # Scroll gradually
-            for _ in range(3):
-                page.mouse.wheel(0, 100)
-                time.sleep(random.uniform(0.2, 0.4))
-            return "Scrolled down"
-        elif (direction == "up"):
-            # Scroll gradually
-            for _ in range(3):
-                page.mouse.wheel(0, -100)
-                time.sleep(random.uniform(0.2, 0.4))
-            return "Scrolled up"
-        elif (direction == "top"):
-            # Go to top
+                return f"Scrolled down {scroll_amount}px - showing new content"
+                
+        elif direction == "up":
+            # Check if already at top
+            if current_y <= 10:
+                return "Already at the top of the page - cannot scroll up further"
+            
+            # Calculate how much we can actually scroll up
+            scroll_amount = min(viewport_height, current_y)
+            
+            page.evaluate(f"window.scrollBy(0, -{scroll_amount})")
+            
+            # Check if we reached the top after scrolling
+            new_position = page.evaluate("window.pageYOffset || document.documentElement.scrollTop")
+            if new_position <= 10:
+                return "Scrolled up and reached the top of the page"
+            else:
+                return f"Scrolled up {scroll_amount}px - showing previous content"
+                
+        elif direction == "top":
+            # Check if already at top
+            if current_y <= 10:
+                return "Already at the top of the page"
+            
             page.evaluate("window.scrollTo(0, 0)")
-            return "Scrolled to top"
-        elif (direction == "bottom"):
-            # Go to bottom
+            return "Scrolled to top of the page"
+            
+        elif direction == "bottom":
+            # Check if already at bottom
+            if current_y >= max_y - 10:
+                return "Already at the bottom of the page"
+            
             page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            return "Scrolled to bottom"
+            return "Scrolled to bottom of the page"
+            
         else:
-            # Default to scrolling down if invalid input
-            for _ in range(3):
-                page.mouse.wheel(0, 100)
-                time.sleep(random.uniform(0.2, 0.4))
-            return f"Invalid direction '{direction}', defaulted to scrolling down"
+            # Invalid direction - default to down with same checks
+            if current_y >= max_y - 10:
+                return f"Invalid direction '{direction}' - already at bottom, cannot scroll down"
+            
+            remaining_scroll = max_y - current_y
+            scroll_amount = min(viewport_height, remaining_scroll)
+            page.evaluate(f"window.scrollBy(0, {scroll_amount})")
+            return f"Invalid direction '{direction}', defaulted to scrolling down {scroll_amount}px"
     except Exception as e:
         # Add more detailed error information for debugging
         print(f"Scroll error details: {e}")
         
-        # Last resort fallback if any part of the scroll handling fails
+        # Fallback to basic scroll operations without position checking
         try:
-            # Try the simplest possible scrolling method
-            page.evaluate(f"""
-                () => {{
-                    if ('{direction}' === 'top') window.scrollTo(0, 0);
-                    else if ('{direction}' === 'bottom') window.scrollTo(0, document.body.scrollHeight);
-                    else if ('{direction}' === 'up') window.scrollBy(0, -300);
-                    else window.scrollBy(0, 300);
-                }}
-            """)
-            return f"Emergency scroll fallback used for direction: {direction}"
+            if direction == 'top':
+                page.evaluate("window.scrollTo(0, 0)")
+                return "Scrolled to top (fallback method)"
+            elif direction == 'bottom':
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                return "Scrolled to bottom (fallback method)"
+            elif direction == 'up':
+                page.evaluate("window.scrollBy(0, -window.innerHeight)")
+                return "Scrolled up one viewport (fallback method)"
+            else:  # down or invalid
+                page.evaluate("window.scrollBy(0, window.innerHeight)")
+                return f"Scrolled down one viewport (fallback method) for direction: {direction}"
         except Exception as fallback_error:
-            return f"Error scrolling: {str(e)} - Fallback also failed: {str(fallback_error)}"
+            # Ultimate fallback to JavaScript
+            try:
+                page.evaluate(f"""
+                    () => {{
+                        if ('{direction}' === 'top') window.scrollTo(0, 0);
+                        else if ('{direction}' === 'bottom') window.scrollTo(0, document.body.scrollHeight);
+                        else if ('{direction}' === 'up') window.scrollBy(0, -window.innerHeight);
+                        else window.scrollBy(0, window.innerHeight);
+                    }}
+                """)
+                return f"JavaScript fallback scroll used for direction: {direction}"
+            except Exception as js_error:
+                return f"Error scrolling: {str(e)} - All fallbacks failed: Basic({str(fallback_error)}), JS({str(js_error)})"

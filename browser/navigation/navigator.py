@@ -45,12 +45,13 @@ def navigate(url) -> str:
         # STEP 1: Direct navigation attempt
         try:
             print(f"Trying direct navigation to {url}")
-            page.goto(url, timeout=20000)
+            page.goto(url, timeout=30000)
             current_url = page.url
             
             # Check if navigation was successful
             if not (current_url.startswith("http") and not "about:blank" in current_url):
                 raise Exception("Direct navigation not successful")
+            time.sleep(1.5)  # Allow time for page to load
             
             print(f"Direct navigation successful, now at: {current_url}")
             return f"Navigated to {url} - Current page: {current_url}"

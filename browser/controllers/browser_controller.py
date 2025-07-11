@@ -3,7 +3,7 @@ Main browser controller that serves as the interface to all browser functionalit
 """
 
 import time
-from browser.controllers.element_controller import click, fill_input, select_option
+from browser.controllers.element_controller import click, type, select_option
 from browser.controllers.keyboard_controller import keyboard_action
 from browser.analyzers.page_analyzer import analyze_page
 from browser.navigation.navigator import navigate, go_back
@@ -48,7 +48,7 @@ def get_browser_tools():
     return [
         analyze_page,
         click,
-        fill_input,
+        type,
         select_option,
         keyboard_action,
         navigate,

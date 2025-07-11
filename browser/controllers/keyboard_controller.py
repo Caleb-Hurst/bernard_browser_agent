@@ -95,7 +95,8 @@ def keyboard_action(input_text) -> str:
                     return f"Error: '{single_key}' is not a valid special key or combination. Use fill_input for typing text."
                 
                 result = _execute_special_key_action(single_key, special_keys)
-                time.sleep(1)  # Small delay between actions
+                # Minimal delay between key actions for performance
+                time.sleep(0.05)
                 results.append(result)
             
             return "Executed key sequence: " + " → ".join(results)
@@ -135,9 +136,9 @@ def _execute_special_key_action(key_input, special_keys):
         
         print(f"Holding {modifier_key} and pressing {key_to_press}")
         page.keyboard.down(modifier_key)
-        time.sleep(0.5)
+        time.sleep(0.05)  # Minimal delay for key registration
         page.keyboard.press(key_to_press)
-        time.sleep(0.5)
+        time.sleep(0.05)  # Minimal delay before release
         page.keyboard.up(modifier_key)
         
         return f"Held {modifier} and pressed {key}"

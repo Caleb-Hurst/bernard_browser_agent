@@ -75,7 +75,7 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
         if mode == "close_reopen":
             print("Closing Chrome and reopening with debugging enabled...")
             close_chrome()
-            time.sleep(3)  # Wait for Chrome to fully close
+            time.sleep(1)  # Minimal wait for Chrome to close
             chrome_running = False
     
     # Launch Chrome with debugging
@@ -115,9 +115,9 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
             
         # Wait for Chrome to start and open the debugging port
         print("Giving Chrome time to start...")
-        time.sleep(5)  # Initial delay
+        time.sleep(2)  # Reduced initial delay
         
-        max_attempts = 15
+        max_attempts = 10  # Reduced attempts for faster startup
         for attempt in range(max_attempts):
             # Check if the port is open
             if is_port_in_use(port):
@@ -125,7 +125,7 @@ def launch_chrome_with_debugging(port=9222, use_default_profile=True, mode=None)
                 return True
                 
             print(f"Waiting for Chrome to start (attempt {attempt+1}/{max_attempts})...")
-            time.sleep(2)
+            time.sleep(1)  # Reduced wait time between attempts
             
         print("⚠️ Chrome started but debugging port is not responding")
         print("This might be due to Chrome's security restrictions")

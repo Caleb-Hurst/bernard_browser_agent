@@ -34,56 +34,48 @@ def analyze_page():
 
             print("Analyzing page content...")
             
-            # Use JavaScript to directly analyze the DOM
+            # Use JavaScript to directly analyze the DOM - optimized version
             page_content = page.evaluate("""
             () => {
-                // Helper function to check if element is visible
-                function isVisible(el) {
-                    if (!el.getBoundingClientRect) return false;
+                // Fast visibility check - combines viewport and visibility checks
+                function isVisibleInViewport(el) {
                     const rect = el.getBoundingClientRect();
                     
-                    // Check if element has dimensions
+                    // Quick dimension check
                     if (rect.width <= 0 || rect.height <= 0) return false;
                     
-                    // Check CSS properties that would make it invisible
-                    const style = window.getComputedStyle(el);
-                    if (style.display === 'none' || 
-                        style.visibility === 'hidden' || 
-                        parseFloat(style.opacity) <= 0.1) {
-                        return false;
-                    }
+                    // Quick viewport check
+                    if (rect.bottom <= 0 || rect.top >= window.innerHeight || 
+                        rect.right <= 0 || rect.left >= window.innerWidth) return false;
                     
-                    return true;
+                    // Only check computed style if element passed basic checks
+                    const style = window.getComputedStyle(el);
+                    return style.display !== 'none' && 
+                           style.visibility !== 'hidden' && 
+                           parseFloat(style.opacity) > 0.1;
                 }
                 
-                // Helper to clean text
-                function cleanText(text) {
-                    if (!text) return '';
-                    return text.replace(/\\s+/g, ' ').trim();
-                }
-                
-                // In the analyze_page method, replace the current getElementType function with this enhanced version:
+                // Fast element type detection - enhanced version
                 function getElementType(el) {
-                    const tagName = el.tagName.toLowerCase();
-                    const type = el.getAttribute('type')?.toLowerCase();
+                    const tag = el.tagName.toLowerCase();
+                    const type = el.type?.toLowerCase();
                     const role = el.getAttribute('role')?.toLowerCase();
                     
-                    // Interactive elements with specific types
-                    if (tagName === 'a') return 'link';
-                    if (tagName === 'button') return 'button';
+                    // Quick lookups for common elements
+                    if (tag === 'a') return 'link';
+                    if (tag === 'button') return 'button';
+                    if (tag === 'select') return 'dropdown';
+                    if (tag === 'textarea') return 'textarea';
                     
-                    if (tagName === 'input') {
-                        if (['submit', 'button', 'reset'].includes(type)) return 'button';
-                        if (['text', 'email', 'password', 'search', 'tel', 'url'].includes(type)) return 'input';
+                    if (tag === 'input') {
+                        if (type === 'submit' || type === 'button' || type === 'reset') return 'button';
                         if (type === 'checkbox') return 'checkbox';
                         if (type === 'radio') return 'radio';
+                        if (type === 'text' || type === 'email' || type === 'password' || type === 'search') return 'input';
                         return 'input'; // Default for other input types
                     }
                     
-                    if (tagName === 'select') return 'dropdown';
-                    if (tagName === 'textarea') return 'textarea';
-                    
-                    // Check for ARIA roles
+                    // Check ARIA roles
                     if (role === 'button') return 'button';
                     if (role === 'link') return 'link';
                     if (role === 'checkbox') return 'checkbox';
@@ -92,48 +84,25 @@ def analyze_page():
                     if (role === 'combobox' || role === 'listbox') return 'dropdown';
                     if (role === 'tab') return 'tab';
                     
-                    // Check for interactive divs/spans
+                    // Check for clickable elements with enhanced detection
                     const style = window.getComputedStyle(el);
                     const hasClickHandler = el.onclick || el.getAttribute('onclick');
-                    const isPointable = style.cursor === 'pointer';
+                    const isPointer = style.cursor === 'pointer';
                     
-                    if ((tagName === 'div' || tagName === 'span') && (hasClickHandler || isPointable)) {
-                        // Try to determine a more specific type for divs/spans that are clickable
+                    if ((tag === 'div' || tag === 'span') && (hasClickHandler || isPointer)) {
                         if (el.getAttribute('aria-haspopup') === 'true') return 'dropdown';
                         if (el.classList.contains('btn') || el.classList.contains('button')) return 'button';
-                        if (el.getAttribute('href') || el.getAttribute('url')) return 'link';
-                        
-                        // If we can't determine a more specific type, default to button
                         return 'button';
                     }
                     
-                    // Enhanced detection for additional interactive elements
-                    if (el.getAttribute('onclick') || el.getAttribute('tabindex') === '0') return 'interactive';
-                    if (style.cursor === 'pointer') return 'interactive';
+                    if (tag === 'label') return 'label';
+                    if (tag === 'img' && (isPointer || hasClickHandler)) return 'image';
+                    if (['h1','h2','h3','h4','h5','h6'].includes(tag) && (isPointer || hasClickHandler)) return 'header';
                     
-                    // Form label elements often need to be clickable
-                    if (tagName === 'label') return 'label';
+                    // Check for general interactivity
+                    if (hasClickHandler || el.getAttribute('tabindex') === '0' || isPointer) return 'interactive';
                     
-                    // Interactive list items
-                    if (tagName === 'li' && (isPointable || hasClickHandler)) return 'listitem';
-                    
-                    // Images that might be clickable
-                    if (tagName === 'img' && (isPointable || hasClickHandler || el.parentElement?.tagName.toLowerCase() === 'a')) 
-                        return 'image';
-                    
-                    // Headers that might be expandable
-                    if (['h1','h2','h3','h4','h5','h6'].includes(tagName) && (isPointable || hasClickHandler))
-                        return 'header';
-                        
-                    // For elements that aren't clearly interactive but have children that are
-                    if (el.querySelector('a, button, input, select, textarea')) return 'container';
-                    
-                    // Last resort: any element with sufficient content should be identifiable
-                    if (el.innerText && el.innerText.trim().length > 0 && 
-                        ['div', 'span', 'p', 'section', 'article'].includes(tagName))
-                        return 'content';
-                        
-                    return null; // Only truly non-interactive elements get null
+                    return null;
                 }
                 
                 // Get all attributes of an element
@@ -173,7 +142,7 @@ def analyze_page():
                     };
                 }
                 
-                // Find all modal/dialog/popup elements
+                // Find all modal/dialog/popup elements that are visible in viewport
                 function findPopups() {
                     // Expanded selectors for modals/dialogs/popups
                     const selectors = [
@@ -202,19 +171,19 @@ def analyze_page():
                         '[class*="drawer"]', '[class*="toast"]', '[class*="tooltip"]', '[class*="popover"]'
                     ];
                     
-                    // Find all visible popups
+                    // Find all visible popups in viewport
                     const popups = [];
                     
                     // Check for elements matching our selectors
                     for (const sel of selectors) {
                         for (const el of document.querySelectorAll(sel)) {
-                            if (isVisible(el)) popups.push(el);
+                            if (isVisibleInViewport(el)) popups.push(el);
                         }
                     }
                     
                     // Check for fixed/absolute positioned elements with high z-index
                     document.querySelectorAll('div, section, aside').forEach(el => {
-                        if (!popups.includes(el) && isVisible(el)) {
+                        if (!popups.includes(el) && isVisibleInViewport(el)) {
                             const style = window.getComputedStyle(el);
                             const position = style.position;
                             const zIndex = parseInt(style.zIndex) || 0;
@@ -232,7 +201,7 @@ def analyze_page():
                     // Check for elements near known backdrops (often indicates a modal)
                     const backdrops = document.querySelectorAll('.modal-backdrop, .overlay, .backdrop, .dimmer, [class*="backdrop"], [class*="overlay"]');
                     for (const backdrop of backdrops) {
-                        if (isVisible(backdrop)) {
+                        if (isVisibleInViewport(backdrop)) {
                             const backdropRect = backdrop.getBoundingClientRect();
                             const viewportCenter = {
                                 x: window.innerWidth / 2,
@@ -241,7 +210,7 @@ def analyze_page():
                             
                             // Look for visible centered elements - often these are modals related to backdrops
                             document.querySelectorAll('div, section, aside').forEach(el => {
-                                if (!popups.includes(el) && isVisible(el)) {
+                                if (!popups.includes(el) && isVisibleInViewport(el)) {
                                     const rect = el.getBoundingClientRect();
                                     const elementCenter = {
                                         x: rect.left + rect.width / 2,
@@ -264,129 +233,173 @@ def analyze_page():
                     return Array.from(new Set(popups));
                 }
 
-                // Extract all visible content maintaining the document structure
-                function extractStructuredContent() {
-                    const extractedContent = [];
-                    const detailedElements = [];
-                    const processedNodes = new Set();
+                // Fast text cleaning
+                function cleanText(text) {
+                    return text ? text.replace(/\\s+/g, ' ').trim() : '';
+                }
+                
+                // Simple popup detection - enhanced but efficient
+                function findVisiblePopups() {
+                    const popups = [];
+                    const modalSelectors = [
+                        '[role="dialog"]', '[role="alertdialog"]', '[aria-modal="true"]',
+                        '.modal', '.dialog', '.popup', '.overlay', '.pop-up', '.popover',
+                        '.ant-modal', '.MuiDialog-root', '.ReactModal__Content', '.modal-dialog',
+                        '[class*="modal"]', '[class*="dialog"]', '[class*="popup"]'
+                    ];
+                    
+                    for (const selector of modalSelectors) {
+                        const elements = document.querySelectorAll(selector);
+                        for (const el of elements) {
+                            if (isVisibleInViewport(el) && !popups.includes(el)) {
+                                popups.push(el);
+                            }
+                        }
+                    }
+                    
+                    // Quick check for high z-index fixed/absolute elements
+                    const candidates = document.querySelectorAll('div[style*="position"], section[style*="position"]');
+                    for (const el of candidates) {
+                        if (isVisibleInViewport(el) && !popups.includes(el)) {
+                            const style = window.getComputedStyle(el);
+                            if ((style.position === 'fixed' || style.position === 'absolute') && 
+                                parseInt(style.zIndex) > 10) {
+                                const rect = el.getBoundingClientRect();
+                                if (rect.width > 100 && rect.height > 100) {
+                                    popups.push(el);
+                                }
+                            }
+                        }
+                    }
+                    
+                    return popups;
+                }
+                
+                // Extract content efficiently - enhanced functionality
+                function extractContent() {
+                    const content = [];
+                    const elements = [];
                     let elementId = 0;
                     
-                    // Process elements in document order
-                    function processNode(node, depth = 0) {
-                        if (!node || processedNodes.has(node)) return;
-                        processedNodes.add(node);
+                    // Get all potentially interactive elements in one query - expanded
+                    const interactiveSelectors = 'a, button, input, select, textarea, [onclick], [role="button"], [role="link"], [tabindex="0"], label, img[onclick], div[onclick], span[onclick]';
+                    const allElements = document.querySelectorAll(interactiveSelectors);
+                    
+                    for (const el of allElements) {
+                        if (!isVisibleInViewport(el)) continue;
                         
-                        // Only process elements (not text nodes or other node types)
-                        if (node.nodeType !== Node.ELEMENT_NODE) return;
+                        const type = getElementType(el);
+                        if (!type) continue;
                         
-                        // Skip invisible elements
-                        if (!isVisible(node)) return;
+                        // Enhanced text extraction
+                        let text = cleanText(el.textContent || el.value || el.placeholder || 
+                                           el.getAttribute('aria-label') || el.getAttribute('title') || 
+                                           el.alt || type);
                         
-                        // Get element's own text (excluding child element text)
+                        // For input fields without text, use name or type
+                        if ((type === 'input' || type === 'textarea') && !text) {
+                            text = el.getAttribute('name') || el.getAttribute('placeholder') || type;
+                        }
+                        
+                        if (text.length > 100) text = text.substring(0, 100) + '...';
+                        
+                        // Skip if type matches text exactly
+                        if (text === type) continue;
+                        
+                        content.push(`[${elementId}][${type}]${text}`);
+                        
+                        // Store enhanced element info
+                        const rect = el.getBoundingClientRect();
+                        elements.push({
+                            id: elementId,
+                            tagName: el.tagName,
+                            type: type,
+                            text: text,
+                            x: rect.left + window.pageXOffset,
+                            y: rect.top + window.pageYOffset,
+                            width: rect.width,
+                            height: rect.height,
+                            center_x: rect.left + rect.width/2 + window.pageXOffset,
+                            center_y: rect.top + rect.height/2 + window.pageYOffset,
+                            isDisabled: el.disabled || el.hasAttribute('disabled'),
+                            attributes: {
+                                id: el.id || '',
+                                class: el.className || '',
+                                href: el.href || '',
+                                value: el.value || '',
+                                placeholder: el.placeholder || ''
+                            }
+                        });
+                        
+                        elementId++;
+                    }
+                    
+                    // Add visible text content (non-interactive) - improved
+                    const textElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, div, li, td, th');
+                    for (const el of textElements) {
+                        if (!isVisibleInViewport(el)) continue;
+                        
+                        // Only get direct text content (not from children)
                         let ownText = '';
-                        
-                        for (const child of node.childNodes) {
+                        for (const child of el.childNodes) {
                             if (child.nodeType === Node.TEXT_NODE) {
                                 ownText += child.textContent;
                             }
                         }
                         ownText = cleanText(ownText);
                         
-                        // Get element type
-                        const elementType = getElementType(node);
-                        
-                        // Replace the conditional element processing block with this:
-                        // For interactive elements, add with type prefix
-                        if (elementType) {
-                            // For input fields, use placeholder or name if there's no text
-                            let displayText = ownText;
-                            if ((elementType === 'input' || elementType === 'textarea') && !displayText) {
-                                displayText = node.getAttribute('placeholder') || 
-                                            node.getAttribute('name') || 
-                                            node.getAttribute('aria-label') || 
-                                            node.getAttribute('title') || '';
-                            }
-                            
-                            // For images without text, use alt text
-                            if (elementType === 'image' && !displayText) {
-                                displayText = node.getAttribute('alt') || node.getAttribute('title') || 'image';
-                            }
-                            
-                            // Only include elements that have text content or are interactive inputs
-                            if (displayText || elementType === 'input' || elementType === 'button' || 
-                                elementType === 'checkbox' || elementType === 'radio') {
-                                if (!displayText) displayText = elementType; // Default text is the element type
-                                
-                                // Add element ID to the output
-                                extractedContent.push(`[${elementId}][${elementType}]${displayText}`);
-                                
-                                // Get detailed information about the element
-                                const rect = node.getBoundingClientRect();
-                                const elementInfo = {
-                                    id: elementId,
-                                    tagName: node.tagName,
-                                    type: elementType,
-                                    text: displayText,
-                                    x: rect.left + window.pageXOffset,
-                                    y: rect.top + window.pageYOffset,
-                                    width: rect.width,
-                                    height: rect.height,
-                                    center_x: rect.left + rect.width/2 + window.pageXOffset,
-                                    center_y: rect.top + rect.height/2 + window.pageYOffset,
-                                    inViewport: (
-                                        rect.top >= 0 && 
-                                        rect.left >= 0 && 
-                                        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-                                        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-                                    ),
-                                    attributes: getElementAttributes(node),
-                                    cssSelector: generateSelector(node),
-                                    parentInfo: getParentInfo(node),
-                                    innerHTML: node.innerHTML.substring(0, 200),
-                                    childElementCount: node.childElementCount,
-                                    isDisabled: node.disabled || node.hasAttribute('disabled'),
-                                    zIndex: parseInt(window.getComputedStyle(node).zIndex) || 0
-                                };
-                                
-                                detailedElements.push(elementInfo);
-                                elementId++;
-                            }
-                        } 
-                        // For non-interactive elements with text, just add the text
-                        else if (ownText && ownText.length > 1) {
-                            extractedContent.push(ownText);
-                        }
-                        
-                        // Process children in document order
-                        for (const child of node.children) {
-                            processNode(child, depth + 1);
+                        // Better filtering for meaningful text
+                        if (ownText && ownText.length > 1 && ownText.length < 200 && 
+                            !ownText.match(/^\\s*[\\d\\W]*\\s*$/)) { // Skip pure numbers/symbols
+                            content.push(ownText);
                         }
                     }
                     
-                    // Start processing from body
-                    processNode(document.body);
-
-                    // Now process popups/modals/dialogs
-                    const popups = findPopups();
-                    for (const popup of popups) {
-                        // Mark popup start
-                        extractedContent.push('--- Popup Window Detected ---');
-                        processNode(popup);
-                        extractedContent.push('--- End of Popup ---');
+                    // Check for visible popups - enhanced processing
+                    const popups = findVisiblePopups();
+                    if (popups.length > 0) {
+                        content.push('--- Modal/Popup Detected ---');
+                        // Process popup content with same detail level
+                        for (const popup of popups.slice(0, 2)) { // Process up to 2 popups
+                            const popupElements = popup.querySelectorAll(interactiveSelectors);
+                            for (const el of popupElements) {
+                                if (!isVisibleInViewport(el)) continue;
+                                const type = getElementType(el);
+                                if (!type) continue;
+                                let text = cleanText(el.textContent || el.value || el.placeholder || 
+                                                   el.getAttribute('aria-label') || type);
+                                if (text !== type && text.length > 0) {
+                                    content.push(`[${elementId}][${type}]${text}`);
+                                    
+                                    // Store popup element info too
+                                    const rect = el.getBoundingClientRect();
+                                    elements.push({
+                                        id: elementId,
+                                        tagName: el.tagName,
+                                        type: type,
+                                        text: text,
+                                        x: rect.left + window.pageXOffset,
+                                        y: rect.top + window.pageYOffset,
+                                        center_x: rect.left + rect.width/2 + window.pageXOffset,
+                                        center_y: rect.top + rect.height/2 + window.pageYOffset,
+                                        isPopup: true
+                                    });
+                                    
+                                    elementId++;
+                                }
+                            }
+                        }
+                        content.push('--- End of Popup ---');
                     }
                     
-                    return {
-                        content: extractedContent,
-                        elements: detailedElements
-                    };
+                    return { content, elements };
                 }
                 
-                // Extract content in document structure order
-                return extractStructuredContent();
+                return extractContent();
             }
             """)
             
-            # Store the detailed elements information
+            # Store elements and process content with original formatting
             page_elements = page_content['elements']
             
             # Post-process the content - clean up formatting and structure
@@ -395,28 +408,23 @@ def analyze_page():
             
             # Add each item, grouping related content on the same line
             for item in page_content['content']:
-                # Skip elements where type matches display text (e.g., "[49][button]button")
+                # Skip elements where type matches display text exactly
                 if item.startswith('['):
-                    # Parse the element format: [id][type]text
                     parts = item.split(']', 2)
                     if len(parts) >= 3:
-                        element_type = parts[1][1:]  # Get the type without '['
-                        display_text = parts[2]      # Get the display text
-                        
-                        # Skip if the element type exactly matches its display text
+                        element_type = parts[1][1:]
+                        display_text = parts[2]
                         if display_text.strip() == element_type:
                             continue
                 
                 # Start a new line for interactive elements or if current line is empty
                 if item.startswith('[') or not current_line:
-                    if (current_line):  # Add the previous line if it exists
+                    if current_line:
                         result.append(current_line)
                     current_line = item
-                
-                # Keep short content items together if they're related (price, ratings, etc.)
+                # Keep short content items together if they're related
                 elif len(item) < 30 and len(current_line) + len(item) + 1 < 80:
                     current_line += " " + item
-                
                 # Otherwise start a new line
                 else:
                     result.append(current_line)
@@ -426,9 +434,8 @@ def analyze_page():
             if current_line:
                 result.append(current_line)
             
-            # Format the result and limit length
-            formatted_result = "\n".join(result).strip()
-            
+            # Format the result
+            formatted_result = "\\n".join(result).strip()
             return formatted_result
             
     except Exception as e:

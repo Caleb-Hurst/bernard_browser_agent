@@ -14,7 +14,7 @@ def inject_cursor_script():
     cursor.style.transform = 'translate(-50%, -50%)';
     cursor.style.pointerEvents = 'none';
     cursor.style.zIndex = '999999';
-    cursor.style.transition = 'left 0.1s, top 0.1s';
+    cursor.style.transition = 'left 0.05s, top 0.05s';
     
     // Add cursor to the page
     document.addEventListener('DOMContentLoaded', function() {
@@ -128,7 +128,7 @@ def initialize_browser(options, connection_options=None):
                 cursor.style.transform = 'translate(-50%, -50%)';
                 cursor.style.pointerEvents = 'none';
                 cursor.style.zIndex = '999999';
-                cursor.style.transition = 'left 0.1s, top 0.1s';
+                cursor.style.transition = 'left 0.05s, top 0.05s';
                 document.body.appendChild(cursor);
             }
             

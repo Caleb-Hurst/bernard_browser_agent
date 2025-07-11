@@ -361,8 +361,8 @@ def command_run(args):
                 print_status_bar("Chrome launched successfully!", "SUCCESS")
                 break
             elif attempt < max_retries - 1:
-                print_status_bar(f"Chrome launch failed, retrying in 2 seconds...", "WARNING")
-                time.sleep(2)
+                print_status_bar(f"Chrome launch failed, retrying in 1 second...", "WARNING")
+                time.sleep(1)  # Reduced retry delay
             else:
                 print_status_bar("All Chrome launch attempts failed", "ERROR")
                 if not BROWSER_CONNECTION.get("fallback_to_new", True):
