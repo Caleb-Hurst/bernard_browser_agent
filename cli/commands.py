@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from cli.chrome_launcher import launch_chrome_with_debugging
-from configurations.config import OPENAI_API_KEY, BROWSER_OPTIONS, BROWSER_CONNECTION
+from configurations.config import BROWSER_OPTIONS, BROWSER_CONNECTION, LLM_PROVIDER, CURRENT_LLM_CONFIG
 
 def get_version():
     return "1.0.0"
@@ -31,7 +31,7 @@ def get_system_info():
         "chrome_processes": count_chrome_processes(),
         "debug_profiles": list_debug_profiles(),
         "temp_profiles": list_temp_profiles(),
-        "api_key_configured": bool(OPENAI_API_KEY),
+        "api_key_configured": bool(CURRENT_LLM_CONFIG.get("api_key")),
         "browser_options": BROWSER_OPTIONS,
         "connection_config": BROWSER_CONNECTION
     }
@@ -139,8 +139,8 @@ def validate_environment():
     """Validate that the environment is properly configured."""
     issues = []
     
-    if not OPENAI_API_KEY:
-        issues.append("OpenAI API key is not configured (set OPENAI_API_KEY environment variable)")
+    if not CURRENT_LLM_CONFIG.get("api_key"):
+        issues.append(f"{LLM_PROVIDER.upper()} API key is not configured (set {LLM_PROVIDER.upper()}_API_KEY environment variable)")
     
     deps = check_dependencies()
     for dep, version in deps.items():
@@ -318,7 +318,7 @@ def command_run(args):
     # Create the agent with enhanced error handling
     print_status_bar("Creating AI agent with tools...", "PROGRESS")
     try:
-        agent_executor = create_agent(OPENAI_API_KEY)
+        agent_executor = create_agent()
         print_status_bar("Agent created successfully!", "SUCCESS")
     except Exception as agent_error:
         print_status_bar(f"Failed to create agent: {str(agent_error)}", "ERROR")
@@ -923,7 +923,7 @@ def diagnose_configuration():
     print("\n⚙️  Configuration:")
     
     # Check API key
-    if OPENAI_API_KEY:
+    if CURRENT_LLM_CONFIG.get("api_key"):
         print("  • ✅ OpenAI API key configured")
     else:
         print("  • ❌ OpenAI API key not configured")
@@ -1031,7 +1031,9 @@ def show_configuration():
     print("📋 Current Configuration:")
     
     config = {
-        "OpenAI API Key": "✅ Set" if OPENAI_API_KEY else "❌ Not set",
+        f"{LLM_PROVIDER.upper()} API Key": "✅ Set" if CURRENT_LLM_CONFIG.get("api_key") else "❌ Not set",
+        "LLM Provider": LLM_PROVIDER.upper(),
+        "Model": CURRENT_LLM_CONFIG.get("model", "Unknown"),
         "Browser Options": BROWSER_OPTIONS,
         "Connection Settings": BROWSER_CONNECTION,
     }

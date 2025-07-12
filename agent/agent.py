@@ -3,9 +3,11 @@ import os
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
-from langchain_openai import AzureChatOpenAI
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from typing_extensions import TypedDict
 from browser.controllers.browser_controller import get_browser_tools
+from configurations.config import LLM_PROVIDER, CURRENT_LLM_CONFIG
 
 from langgraph.graph import StateGraph, START
 from langgraph.graph.message import add_messages
@@ -14,21 +16,46 @@ from langgraph.prebuilt import ToolNode, tools_condition
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
     
-def create_agent(api_key: str):
-    # Initialize Azure OpenAI
-    llm = AzureChatOpenAI(
-        model_name="gpt-4o",
-        openai_api_key=api_key,
-        api_version="2024-12-01-preview",
-        azure_endpoint= os.getenv("AZURE_ENDPOINT"),
-    )
-    # If using Groq, initialize with Groq API key
-    # llm = ChatGroq(
-    #     model="meta-llama/llama-4-maverick-17b-128e-instruct",
-    #     temperature=0,
-    #     max_tokens=2048,
-    #     api_key=api_key
-    # )
+def create_agent():
+    """Create an agent using the configured LLM provider."""
+    config = CURRENT_LLM_CONFIG
+    
+    # Initialize LLM based on selected provider
+    if LLM_PROVIDER == "openai":
+        llm = ChatOpenAI(
+            model=config["model"],
+            temperature=config["temperature"],
+            max_tokens=config["max_tokens"],
+            api_key=config["api_key"],
+            base_url=config.get("base_url")
+        )
+    elif LLM_PROVIDER == "azure":
+        llm = AzureChatOpenAI(
+            model=config["model"],
+            temperature=config["temperature"],
+            max_tokens=config["max_tokens"],
+            openai_api_key=config["api_key"],
+            azure_endpoint=config["azure_endpoint"],
+            api_version=config["api_version"]
+        )
+    elif LLM_PROVIDER == "groq":
+        llm = ChatGroq(
+            model=config["model"],
+            temperature=config["temperature"],
+            max_tokens=config["max_tokens"],
+            api_key=config["api_key"]
+        )
+    elif LLM_PROVIDER == "anthropic":
+        llm = ChatAnthropic(
+            model=config["model"],
+            temperature=config["temperature"],
+            max_tokens=config["max_tokens"],
+            api_key=config["api_key"]
+        )
+    else:
+        raise ValueError(f"Unsupported LLM provider: {LLM_PROVIDER}")
+    
+    print(f"Initialized {LLM_PROVIDER} LLM with model: {config['model']}")
 
     # Bind tools to the LLM
     tools = get_browser_tools();
