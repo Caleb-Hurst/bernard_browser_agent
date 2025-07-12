@@ -107,7 +107,6 @@ Comprehensive documentation is available in the `docs/` folder:
 
 ### Advanced Topics
 
-- **[LLM Providers Guide](docs/LLM_PROVIDERS.md)** - Configure different AI providers (OpenAI, Groq, etc.)
 - **[Architecture Guide](docs/ARCHITECTURE.md)** - Technical architecture and design patterns
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
