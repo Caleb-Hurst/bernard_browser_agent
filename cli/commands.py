@@ -18,6 +18,61 @@ from typing import Dict, List, Optional, Tuple
 from cli.chrome_launcher import launch_chrome_with_debugging
 from configurations.config import BROWSER_OPTIONS, BROWSER_CONNECTION, LLM_PROVIDER, CURRENT_LLM_CONFIG
 
+# ANSI Color Codes
+class Colors:
+    """ANSI color codes for terminal output."""
+    # Reset
+    RESET = '\033[0m'
+    
+    # Regular colors
+    BLACK = '\033[30m'
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    WHITE = '\033[37m'
+    
+    # Bright colors
+    BRIGHT_BLACK = '\033[90m'
+    BRIGHT_RED = '\033[91m'
+    BRIGHT_GREEN = '\033[92m'
+    BRIGHT_YELLOW = '\033[93m'
+    BRIGHT_BLUE = '\033[94m'
+    BRIGHT_MAGENTA = '\033[95m'
+    BRIGHT_CYAN = '\033[96m'
+    BRIGHT_WHITE = '\033[97m'
+    
+    # Background colors
+    BG_BLACK = '\033[40m'
+    BG_RED = '\033[41m'
+    BG_GREEN = '\033[42m'
+    BG_YELLOW = '\033[43m'
+    BG_BLUE = '\033[44m'
+    BG_MAGENTA = '\033[45m'
+    BG_CYAN = '\033[46m'
+    BG_WHITE = '\033[47m'
+    
+    # Styles
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    ITALIC = '\033[3m'
+    UNDERLINE = '\033[4m'
+    BLINK = '\033[5m'
+    REVERSE = '\033[7m'
+
+def colorize(text: str, color: str = "", style: str = "") -> str:
+    """Apply color and style to text."""
+    # Check environment variables for color control
+    if os.environ.get('NO_COLOR') or not sys.stdout.isatty():
+        return text
+    return f"{style}{color}{text}{Colors.RESET}"
+
+def print_colored(text: str, color: str = "", style: str = "", end: str = "\n"):
+    """Print colored text."""
+    print(colorize(text, color, style), end=end)
+
 def get_version():
     return "1.0.0"
 
@@ -108,32 +163,43 @@ def check_dependencies():
 
 def print_banner():
     banner = f"""
-╔══════════════════════════════════════════════════════════════╗
-║                      🌐 Browser Agent 🌐                     ║
-║                        Version {get_version()}                         ║
-╚══════════════════════════════════════════════════════════════╝
-    An AI agent that controls your browser through natural language
+{Colors.BRIGHT_CYAN}╔══════════════════════════════════════════════════════════════╗{Colors.RESET}
+{Colors.BRIGHT_CYAN}║{Colors.RESET}                      {Colors.BRIGHT_BLUE}🌐 Browser Agent 🌐{Colors.RESET}                     {Colors.BRIGHT_CYAN}║{Colors.RESET}
+{Colors.BRIGHT_CYAN}║{Colors.RESET}                        {Colors.BRIGHT_GREEN}Version {get_version()}{Colors.RESET}                         {Colors.BRIGHT_CYAN}║{Colors.RESET}
+{Colors.BRIGHT_CYAN}╚══════════════════════════════════════════════════════════════╝{Colors.RESET}
+    {Colors.CYAN}An AI agent that controls your browser through natural language{Colors.RESET}
     """
     print(banner)
 
 def print_status_bar(message: str, status: str = "INFO"):
-    """Print a formatted status message."""
+    """Print a formatted status message with proper cursor handling and colors."""
     timestamp = datetime.now().strftime("%H:%M:%S")
-    status_icons = {
-        "INFO": "ℹ️",
-        "SUCCESS": "✅",
-        "WARNING": "⚠️",
-        "ERROR": "❌",
-        "PROGRESS": "🔄"
+    
+    status_config = {
+        "INFO": {"icon": "ℹ️", "color": Colors.BRIGHT_BLUE},
+        "SUCCESS": {"icon": "✅", "color": Colors.BRIGHT_GREEN},
+        "WARNING": {"icon": "⚠️", "color": Colors.BRIGHT_YELLOW},
+        "ERROR": {"icon": "❌", "color": Colors.BRIGHT_RED},
+        "PROGRESS": {"icon": "🔄", "color": Colors.BRIGHT_CYAN}
     }
-    icon = status_icons.get(status, "ℹ️")
-    print(f"[{timestamp}] {icon} {message}")
+    
+    config = status_config.get(status, status_config["INFO"])
+    icon = config["icon"]
+    color = config["color"]
+    
+    # Ensure clean line printing with colors
+    timestamp_colored = colorize(f"[{timestamp}]", Colors.BRIGHT_BLACK)
+    message_colored = colorize(message, color)
+    
+    sys.stdout.write(f"\r\033[K{timestamp_colored} {icon} {message_colored}\n")
+    sys.stdout.flush()
 
 def print_section_header(title: str):
-    """Print a formatted section header."""
-    print(f"\n{'='*60}")
-    print(f"  {title}")
-    print(f"{'='*60}")
+    """Print a formatted section header with colors."""
+    separator = "="*60
+    print(f"\n{Colors.BRIGHT_CYAN}{separator}{Colors.RESET}")
+    print(f"{Colors.BRIGHT_CYAN}  {Colors.BRIGHT_WHITE}{Colors.BOLD}{title}{Colors.RESET}")
+    print(f"{Colors.BRIGHT_CYAN}{separator}{Colors.RESET}")
 
 def validate_environment():
     """Validate that the environment is properly configured."""
@@ -168,6 +234,7 @@ def setup_argparse():
 
 🌐 PROFILE OPTIONS:
   --profile temp       Use temporary clean profile (no saved information)
+  --profile default    Use default browser profile (with saved logins, bookmarks, history)
 
 ⚙️ MODE OPTIONS (when Chrome is already running):
   --mode close_reopen  Close Chrome and reopen with debugging (clean profile)
@@ -176,6 +243,9 @@ def setup_argparse():
 📝 EXAMPLES:
   # Start with clean browser session
   uv run main.py run --profile temp
+  
+  # Start with default browser profile (saved logins, bookmarks, etc.)
+  uv run main.py run --profile default
   
   # Launch Chrome with debugging enabled
   uv run main.py launch --profile temp --mode close_reopen
@@ -204,6 +274,7 @@ def setup_argparse():
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
     parser.add_argument("--quiet", "-q", action="store_true", help="Suppress non-essential output")
     parser.add_argument("--no-banner", action="store_true", help="Don't show the banner")
+    parser.add_argument("--no-color", action="store_true", help="Disable colored output")
     
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
     
@@ -211,8 +282,8 @@ def setup_argparse():
     run_parser = subparsers.add_parser("run", help="Run the browser agent")
     run_parser.add_argument("--task", "-t", type=str, help="Initial task to execute")
     run_parser.add_argument("--headless", action="store_true", help="Run in headless mode")
-    run_parser.add_argument("--profile", choices=["temp"], default="temp",
-                           help="Browser profile: 'temp' (clean)")
+    run_parser.add_argument("--profile", choices=["temp", "default"], default="temp",
+                           help="Browser profile: 'temp' (clean) or 'default' (local browser with saved data)")
     run_parser.add_argument("--mode", choices=["close_reopen", "new_window"], 
                            help="If Chrome is running: 'close_reopen' (keep logins) or 'new_window' (clean)")
     run_parser.add_argument("--port", type=int, default=9222, help="Debug port (default: 9222)")
@@ -222,8 +293,8 @@ def setup_argparse():
     # 'launch' command
     launch_parser = subparsers.add_parser("launch", help="Launch Chrome browser with debugging enabled")
     launch_parser.add_argument("--port", "-p", type=int, default=9222, help="Debug port (default: 9222)")
-    launch_parser.add_argument("--profile", choices=["temp"], default="temp",
-                             help="Browser profile: 'temp' (clean)")
+    launch_parser.add_argument("--profile", choices=["temp", "default"], default="temp",
+                             help="Browser profile: 'temp' (clean) or 'default' (local browser with saved data)")
     launch_parser.add_argument("--mode", "-m", choices=["close_reopen", "new_window"], 
                              help="If Chrome is running: 'close_reopen' (keep logins) or 'new_window' (clean)")
     launch_parser.add_argument("--wait", action="store_true", help="Wait for Chrome to be ready before exiting")
@@ -277,7 +348,7 @@ def setup_argparse():
     # 'debug' command
     debug_parser = subparsers.add_parser("debug", help="Run in debug mode with verbose logging")
     debug_parser.add_argument("--task", "-t", type=str, help="Initial task to execute")
-    debug_parser.add_argument("--profile", choices=["temp"], default="temp",
+    debug_parser.add_argument("--profile", choices=["temp", "default"], default="temp",
                              help="Browser profile to use")
     debug_parser.add_argument("--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], 
                              default="DEBUG", help="Log level")
@@ -287,6 +358,7 @@ def setup_argparse():
     version_parser = subparsers.add_parser("version", help="Show version information")
     version_parser.add_argument("--json", action="store_true", help="Output version info as JSON")
     version_parser.add_argument("--check-updates", action="store_true", help="Check for available updates")
+    version_parser.add_argument("--no-color", action="store_true", help="Disable colored output")
     
     # 'help' command
     help_parser = subparsers.add_parser("help", help="Show detailed help for commands")
@@ -341,7 +413,7 @@ def command_run(args):
         print_status_bar(f"Connecting to Chrome debug port {port}...", "PROGRESS")
         
         # Determine profile and mode settings
-        use_default_profile = False  # Always use temp profile
+        use_default_profile = (args.profile == "default")  # Use default profile if specified
         launch_mode = getattr(args, 'mode', None)
         
         # Enhanced Chrome launching with timeout and retries
@@ -412,16 +484,50 @@ def command_run(args):
     
     # Interactive mode with enhanced prompts
     print_section_header("Interactive Mode")
-    print("💬 Enter your instructions for the browser agent")
-    print("💡 Type 'help' for available commands or 'exit' to quit")
-    print("🔍 Use 'status' to check system status")
+    print_colored("💬 Enter your instructions for the browser agent", Colors.BRIGHT_GREEN)
+    print_colored("💡 Type 'help' for available commands or 'exit' to quit", Colors.BRIGHT_YELLOW)
+    print_colored("🔍 Use 'status' to check system status", Colors.BRIGHT_BLUE)
+    
+    # Setup terminal for better experience
+    terminal_ready = setup_terminal()
+    if terminal_ready:
+        print_status_bar("Terminal enhanced with history and completion", "INFO")
     
     interaction_count = 0
     keep_running = True
     
     while keep_running:
         try:
-            user_query = input(f"\n[{interaction_count}] Browser Agent> ").strip()
+            # Clear any pending output and reset cursor
+            reset_cursor()
+            
+            # Create a clean prompt with proper formatting and colors
+            prompt_prefix = colorize(f"[{interaction_count}]", Colors.BRIGHT_BLACK)
+            prompt_text = colorize("Browser Agent", Colors.BRIGHT_CYAN, Colors.BOLD)
+            prompt_symbol = colorize("> ", Colors.BRIGHT_WHITE)
+            prompt = f"\n{prompt_prefix} {prompt_text}{prompt_symbol}"
+            
+            try:
+                # Use input() with proper cursor management
+                user_query = input(prompt).strip()
+            except EOFError:
+                # Handle Ctrl+D gracefully
+                print("\n")
+                print_status_bar("Input stream closed", "INFO")
+                break
+            except KeyboardInterrupt:
+                # Handle Ctrl+C in the input prompt
+                print("\n")
+                print_status_bar("Interrupted", "WARNING")
+                try:
+                    confirm = input("Are you sure you want to exit? (y/N): ")
+                    if confirm.lower() in ['y', 'yes']:
+                        break
+                    else:
+                        continue
+                except (EOFError, KeyboardInterrupt):
+                    print("\nForced exit")
+                    break
             
             if not user_query:
                 continue
@@ -450,28 +556,22 @@ def command_run(args):
                 duration = (end_time - start_time).total_seconds()
                 
                 print_status_bar(f"Execution completed in {duration:.2f} seconds", "SUCCESS")
-                print("\n" + "="*50)
-                print("RESPONSE:")
-                print("="*50)
-                print(response.get("output", "No output received"))
-                print("="*50)
+                print_agent_response(response.get("output", "No output received"))
                     
             except Exception as e:
                 print_status_bar(f"Execution error: {str(e)}", "ERROR")
                 if args.verbose:
                     import traceback
                     traceback.print_exc()
-                print("💡 The agent encountered an error but the browser will remain open.")
-                print("   You can continue with a new instruction.")
+                print_colored("💡 The agent encountered an error but the browser will remain open.", Colors.BRIGHT_YELLOW)
+                print_colored("   You can continue with a new instruction.", Colors.BRIGHT_YELLOW)
                 
-        except KeyboardInterrupt:
-            print_status_bar("\nInterrupted by user", "WARNING")
-            confirm = input("Are you sure you want to exit? (y/N): ")
-            if confirm.lower() in ['y', 'yes']:
-                break
-        except EOFError:
-            print_status_bar("\nInput stream closed", "INFO")
-            break
+        except Exception as unexpected_error:
+            print_status_bar(f"Unexpected error in interactive loop: {str(unexpected_error)}", "ERROR")
+            if args.verbose:
+                import traceback
+                traceback.print_exc()
+            print("💡 An unexpected error occurred. You can try again or exit.")
     
     # Enhanced cleanup with options
     print_section_header("Cleanup")
@@ -494,47 +594,52 @@ def command_run(args):
     return True
 
 def print_interactive_help():
-    """Print help for interactive mode."""
-    print("""
-🔧 INTERACTIVE COMMANDS:
-  help     Show this help message
-  status   Show system status
-  clear    Clear the screen
-  exit     Exit the Browser Agent
-  quit     Exit the Browser Agent
-  q        Exit the Browser Agent
+    """Print help for interactive mode with colors."""
+    print(f"""
+{Colors.BRIGHT_CYAN}🔧 INTERACTIVE COMMANDS:{Colors.RESET}
+  {Colors.BRIGHT_GREEN}help{Colors.RESET}     Show this help message
+  {Colors.BRIGHT_GREEN}status{Colors.RESET}   Show system status
+  {Colors.BRIGHT_GREEN}clear{Colors.RESET}    Clear the screen
+  {Colors.BRIGHT_RED}exit{Colors.RESET}     Exit the Browser Agent
+  {Colors.BRIGHT_RED}quit{Colors.RESET}     Exit the Browser Agent
+  {Colors.BRIGHT_RED}q{Colors.RESET}        Exit the Browser Agent
 
-💡 TIPS:
+{Colors.BRIGHT_YELLOW}💡 TIPS:{Colors.RESET}
   - Be specific about what you want the browser to do
-  - Use natural language: "Go to Google and search for Python"
+  - Use natural language: {Colors.BRIGHT_WHITE}"Go to Google and search for Python"{Colors.RESET}
   - The agent can handle complex multi-step tasks
-  - Use Ctrl+C to interrupt long-running tasks
+  - Use {Colors.BRIGHT_MAGENTA}Ctrl+C{Colors.RESET} to interrupt long-running tasks
     """)
 
 def print_system_status():
-    """Print current system status."""
+    """Print current system status with colors."""
     print_section_header("System Status")
     info = get_system_info()
-    print(f"🔧 Version: {info['version']}")
-    print(f"🐍 Python: {info['python_version']}")
-    print(f"🖥️  Platform: {info['platform']}")
-    print(f"🌐 Chrome Processes: {info['chrome_processes']}")
-    print(f"🔑 API Key: {'✅ Configured' if info['api_key_configured'] else '❌ Missing'}")
-    print(f"📁 Debug Profiles: {len(info['debug_profiles'])}")
-    print(f"🗂️  Temp Profiles: {len(info['temp_profiles'])}")
+    
+    print_colored(f"🔧 Version: {info['version']}", Colors.BRIGHT_GREEN)
+    print_colored(f"🐍 Python: {info['python_version']}", Colors.BRIGHT_BLUE)
+    print_colored(f"🖥️  Platform: {info['platform']}", Colors.BRIGHT_CYAN)
+    print_colored(f"🌐 Chrome Processes: {info['chrome_processes']}", Colors.BRIGHT_YELLOW)
+    
+    api_status = "✅ Configured" if info['api_key_configured'] else "❌ Missing"
+    api_color = Colors.BRIGHT_GREEN if info['api_key_configured'] else Colors.BRIGHT_RED
+    print_colored(f"🔑 API Key: {api_status}", api_color)
+    
+    print_colored(f"📁 Debug Profiles: {len(info['debug_profiles'])}", Colors.BRIGHT_MAGENTA)
+    print_colored(f"🗂️  Temp Profiles: {len(info['temp_profiles'])}", Colors.BRIGHT_CYAN)
     
     if info['chrome_processes'] > 0:
-        print("✅ Chrome is running")
+        print_colored("✅ Chrome is running", Colors.BRIGHT_GREEN)
     else:
-        print("⚠️  Chrome is not running")
+        print_colored("⚠️  Chrome is not running", Colors.BRIGHT_YELLOW)
 
 def command_launch(args):
     """Launch Chrome with debugging enabled."""
     port = args.port
-    use_default_profile = False  # Always use temp profile
+    use_default_profile = (args.profile == "default")  # Use default profile if specified
     mode = getattr(args, 'mode', None)
     
-    profile_desc = "clean temporary profile"
+    profile_desc = "default browser profile (with saved data)" if use_default_profile else "clean temporary profile"
     
     print_status_bar(f"Launching Chrome with debugging on port {port} ({profile_desc})...", "PROGRESS")
     
@@ -546,8 +651,11 @@ def command_launch(args):
     
     if success:
         print_status_bar(f"Chrome launched successfully on port {port}", "SUCCESS")
-        print_status_bar("Using temporary profile - no login information", "INFO")
-        print(f"🔗 CDP endpoint: http://localhost:{port}")
+        if use_default_profile:
+            print_status_bar("Using default profile - your saved logins and bookmarks are available", "INFO")
+        else:
+            print_status_bar("Using temporary profile - no login information", "INFO")
+        print(f"🔗 CDP endpoint: {colorize(f'http://localhost:{port}', Colors.BRIGHT_CYAN, Colors.UNDERLINE)}")
         
         if args.wait:
             print_status_bar("Waiting for Chrome to be ready...", "PROGRESS")
@@ -557,9 +665,9 @@ def command_launch(args):
             else:
                 print_status_bar("Chrome may not be fully ready", "WARNING")
         
-        print("\n💡 You can now run the Browser Agent with:")
-        print(f"   uv run main.py run --port {port}")
-        print(f"   # Or: python main.py run --port {port}")
+        print(f"\n💡 You can now run the Browser Agent with:")
+        print(f"   {colorize(f'uv run main.py run --port {port}', Colors.BRIGHT_GREEN)}")
+        print(f"   {colorize(f'# Or: python main.py run --port {port}', Colors.BRIGHT_BLACK)}")
     else:
         print_status_bar("Failed to launch Chrome with debugging", "ERROR")
         return False
@@ -595,9 +703,9 @@ def command_connect(args):
         return True
     else:
         print_status_bar("Connection failed!", "ERROR")
-        print(f"💡 Make sure Chrome is running with debugging enabled on port {port}")
-        print(f"   You can launch it with: uv run main.py launch --port {port}")
-        print(f"   # Or: python main.py launch --port {port}")
+        print_colored(f"💡 Make sure Chrome is running with debugging enabled on port {port}", Colors.BRIGHT_YELLOW)
+        print(f"   You can launch it with: {colorize(f'uv run main.py launch --port {port}', Colors.BRIGHT_GREEN)}")
+        print(f"   {colorize(f'# Or: python main.py launch --port {port}', Colors.BRIGHT_BLACK)}")
         return False
 
 def command_profiles(args):
@@ -766,25 +874,30 @@ def command_config(args):
     return True
 
 def command_version(args):
-    """Show version information."""
+    """Show version information with colors."""
     if not args.json:
-        print_banner()
-        print("Detailed Information:")
+        print_colored("Detailed Information:", Colors.BRIGHT_CYAN, Colors.BOLD)
         info = get_system_info()
-        print(f"  - Version: {info['version']}")
-        print(f"  - Python: {info['python_version']}")
-        print(f"  - Platform: {info['platform']}")
-        print(f"  - Current directory: {info['current_directory']}")
-        print(f"  - Chrome processes: {info['chrome_processes']}")
-        print(f"  - API key configured: {'Yes' if info['api_key_configured'] else 'No'}")
+        print_colored(f"  - Version: {info['version']}", Colors.BRIGHT_GREEN)
+        print_colored(f"  - Python: {info['python_version']}", Colors.BRIGHT_BLUE)
+        print_colored(f"  - Platform: {info['platform']}", Colors.BRIGHT_MAGENTA)
+        print_colored(f"  - Current directory: {info['current_directory']}", Colors.BRIGHT_CYAN)
+        print_colored(f"  - Chrome processes: {info['chrome_processes']}", Colors.BRIGHT_YELLOW)
         
-        print("\nDependencies:")
+        api_configured = 'Yes' if info['api_key_configured'] else 'No'
+        api_color = Colors.BRIGHT_GREEN if info['api_key_configured'] else Colors.BRIGHT_RED
+        print_colored(f"  - API key configured: {api_configured}", api_color)
+        
+        print_colored("\nDependencies:", Colors.BRIGHT_CYAN, Colors.BOLD)
         deps = check_dependencies()
         for dep, version in deps.items():
-            print(f"  - {dep}: {version}")
+            if "❌" in str(version):
+                print_colored(f"  - {dep}: {version}", Colors.BRIGHT_RED)
+            else:
+                print_colored(f"  - {dep}: {version}", Colors.BRIGHT_GREEN)
         
         if args.check_updates:
-            print("\n🔍 Checking for updates...")
+            print_colored("\n🔍 Checking for updates...", Colors.BRIGHT_YELLOW)
             print_status_bar("Update checking not yet implemented", "WARNING")
     else:
         # JSON output
@@ -865,12 +978,12 @@ def run_all_diagnostics():
     print_status_bar("Diagnostics complete", "SUCCESS")
 
 def diagnose_chrome():
-    """Diagnose Chrome installation and processes."""
-    print("\n🌐 Chrome Diagnostics:")
+    """Diagnose Chrome installation and processes with colors."""
+    print(f"\n{Colors.BRIGHT_BLUE}🌐 Chrome Diagnostics:{Colors.RESET}")
     
     # Check Chrome processes
     chrome_count = count_chrome_processes()
-    print(f"  • Running Chrome processes: {chrome_count}")
+    print_colored(f"  • Running Chrome processes: {chrome_count}", Colors.BRIGHT_CYAN)
     
     # Check for Chrome executable
     chrome_paths = []
@@ -894,69 +1007,76 @@ def diagnose_chrome():
     chrome_found = False
     for path in chrome_paths:
         if os.path.exists(path):
-            print(f"  • Chrome executable found: {path}")
+            print_colored(f"  • Chrome executable found: {path}", Colors.BRIGHT_GREEN)
             chrome_found = True
             break
     
     if not chrome_found:
-        print("  • ⚠️  Chrome executable not found in standard locations")
+        print_colored("  • ⚠️  Chrome executable not found in standard locations", Colors.BRIGHT_YELLOW)
     
     # Test debug port
     if test_chrome_connection(9222):
-        print("  • ✅ Debug port 9222 accessible")
+        print_colored("  • ✅ Debug port 9222 accessible", Colors.BRIGHT_GREEN)
     else:
-        print("  • ❌ Debug port 9222 not accessible")
+        print_colored("  • ❌ Debug port 9222 not accessible", Colors.BRIGHT_RED)
 
 def diagnose_dependencies():
-    """Diagnose Python dependencies."""
-    print("\n🐍 Python Dependencies:")
+    """Diagnose Python dependencies with colors."""
+    print(f"\n{Colors.BRIGHT_BLUE}🐍 Python Dependencies:{Colors.RESET}")
     
     deps = check_dependencies()
     for dep, version in deps.items():
         if "❌" in str(version):
-            print(f"  • ❌ {dep}: Not installed")
+            print_colored(f"  • ❌ {dep}: Not installed", Colors.BRIGHT_RED)
         else:
-            print(f"  • ✅ {dep}: {version}")
+            print_colored(f"  • ✅ {dep}: {version}", Colors.BRIGHT_GREEN)
 
 def diagnose_configuration():
-    """Diagnose configuration issues."""
-    print("\n⚙️  Configuration:")
+    """Diagnose configuration issues with colors."""
+    print(f"\n{Colors.BRIGHT_BLUE}⚙️  Configuration:{Colors.RESET}")
     
     # Check API key
     if CURRENT_LLM_CONFIG.get("api_key"):
-        print("  • ✅ OpenAI API key configured")
+        print_colored("  • ✅ OpenAI API key configured", Colors.BRIGHT_GREEN)
     else:
-        print("  • ❌ OpenAI API key not configured")
+        print_colored("  • ❌ OpenAI API key not configured", Colors.BRIGHT_RED)
     
     # Check .env file
     env_file = Path(".env")
     if env_file.exists():
-        print("  • ✅ .env file found")
+        print_colored("  • ✅ .env file found", Colors.BRIGHT_GREEN)
     else:
-        print("  • ⚠️  .env file not found")
+        print_colored("  • ⚠️  .env file not found", Colors.BRIGHT_YELLOW)
     
     # Check browser options
-    print(f"  • Browser headless: {BROWSER_OPTIONS.get('headless', False)}")
-    print(f"  • Browser channel: {BROWSER_OPTIONS.get('channel', 'unknown')}")
-    print(f"  • Connection mode: {'Existing' if BROWSER_CONNECTION.get('use_existing') else 'New'}")
+    headless_status = BROWSER_OPTIONS.get('headless', False)
+    headless_color = Colors.BRIGHT_YELLOW if headless_status else Colors.BRIGHT_GREEN
+    print_colored(f"  • Browser headless: {headless_status}", headless_color)
+    
+    channel = BROWSER_OPTIONS.get('channel', 'unknown')
+    print_colored(f"  • Browser channel: {channel}", Colors.BRIGHT_CYAN)
+    
+    connection_mode = 'Existing' if BROWSER_CONNECTION.get('use_existing') else 'New'
+    connection_color = Colors.BRIGHT_MAGENTA if connection_mode == 'Existing' else Colors.BRIGHT_BLUE
+    print_colored(f"  • Connection mode: {connection_mode}", connection_color)
 
 def diagnose_network():
-    """Diagnose network connectivity."""
-    print("\n🌐 Network Connectivity:")
+    """Diagnose network connectivity with colors."""
+    print(f"\n{Colors.BRIGHT_BLUE}🌐 Network Connectivity:{Colors.RESET}")
     
     # Test localhost connection
     if test_chrome_connection(9222):
-        print("  • ✅ localhost:9222 accessible")
+        print_colored("  • ✅ localhost:9222 accessible", Colors.BRIGHT_GREEN)
     else:
-        print("  • ❌ localhost:9222 not accessible")
+        print_colored("  • ❌ localhost:9222 not accessible", Colors.BRIGHT_RED)
     
     # Test internet connectivity
     import urllib.request
     try:
         with urllib.request.urlopen("https://www.google.com", timeout=5):
-            print("  • ✅ Internet connectivity available")
+            print_colored("  • ✅ Internet connectivity available", Colors.BRIGHT_GREEN)
     except:
-        print("  • ❌ Internet connectivity issues")
+        print_colored("  • ❌ Internet connectivity issues", Colors.BRIGHT_RED)
 
 def export_diagnostic_report(filename: str):
     """Export diagnostic report to file."""
@@ -1027,24 +1147,29 @@ def cleanup_logs(dry_run: bool = False) -> bool:
     return True
 
 def show_configuration():
-    """Show current configuration."""
-    print("📋 Current Configuration:")
+    """Show current configuration with colors."""
+    print_colored("📋 Current Configuration:", Colors.BRIGHT_CYAN, Colors.BOLD)
+    
+    api_status = "✅ Set" if CURRENT_LLM_CONFIG.get("api_key") else "❌ Not set"
+    api_color = Colors.BRIGHT_GREEN if CURRENT_LLM_CONFIG.get("api_key") else Colors.BRIGHT_RED
     
     config = {
-        f"{LLM_PROVIDER.upper()} API Key": "✅ Set" if CURRENT_LLM_CONFIG.get("api_key") else "❌ Not set",
-        "LLM Provider": LLM_PROVIDER.upper(),
-        "Model": CURRENT_LLM_CONFIG.get("model", "Unknown"),
-        "Browser Options": BROWSER_OPTIONS,
-        "Connection Settings": BROWSER_CONNECTION,
+        f"{LLM_PROVIDER.upper()} API Key": (api_status, api_color),
+        "LLM Provider": (LLM_PROVIDER.upper(), Colors.BRIGHT_BLUE),
+        "Model": (CURRENT_LLM_CONFIG.get("model", "Unknown"), Colors.BRIGHT_MAGENTA),
+        "Browser Options": (None, None),  # Special handling for dict
+        "Connection Settings": (None, None),  # Special handling for dict
     }
     
-    for key, value in config.items():
-        if isinstance(value, dict):
-            print(f"  {key}:")
-            for sub_key, sub_value in value.items():
-                print(f"    {sub_key}: {sub_value}")
+    for key, (value, color) in config.items():
+        if key in ["Browser Options", "Connection Settings"]:
+            print_colored(f"  {key}:", Colors.BRIGHT_YELLOW)
+            data = BROWSER_OPTIONS if key == "Browser Options" else BROWSER_CONNECTION
+            for sub_key, sub_value in data.items():
+                print_colored(f"    {sub_key}: {sub_value}", Colors.WHITE)
         else:
-            print(f"  {key}: {value}")
+            print_colored(f"  {key}: ", Colors.BRIGHT_WHITE, end="")
+            print_colored(value, color)
 
 def set_configuration(key: str, value: str):
     """Set configuration value."""
@@ -1096,7 +1221,7 @@ def show_command_help(topic: str):
   Options:
     --task, -t        Initial task to execute
     --headless        Run in headless mode
-    --profile         Browser profile (temp)
+    --profile         Browser profile (temp, default)
     --mode           Launch mode (close_reopen, new_window)
     --port           Debug port (default: 9222)
     --timeout        Connection timeout in seconds
@@ -1105,6 +1230,7 @@ def show_command_help(topic: str):
   Examples:
     uv run main.py run --task "Go to Google"
     uv run main.py run --profile temp --headless
+    uv run main.py run --profile default --task "Check my Gmail"
     
   Note: Replace 'uv run' with 'python' if using pip instead of uv.
         """,
@@ -1116,7 +1242,7 @@ def show_command_help(topic: str):
   
   Options:
     --port, -p       Debug port (default: 9222)
-    --profile        Browser profile (temp)
+    --profile        Browser profile (temp, default)
     --mode, -m       Launch mode (close_reopen, new_window)
     --wait           Wait for Chrome to be ready
     --background     Launch in background
@@ -1124,6 +1250,7 @@ def show_command_help(topic: str):
   Examples:
     uv run main.py launch --port 9223
     uv run main.py launch --profile temp --wait
+    uv run main.py launch --profile default --mode close_reopen
     
   Note: Replace 'uv run' with 'python' if using pip instead of uv.
         """,
@@ -1156,35 +1283,36 @@ def show_command_help(topic: str):
         print("Available topics: run, launch, diagnose")
 
 def show_general_help():
-    """Show general help information."""
-    print("""
-🔍 BROWSER AGENT HELP:
+    """Show general help information with colors."""
+    print(f"""
+{Colors.BRIGHT_CYAN}🔍 BROWSER AGENT HELP:{Colors.RESET}
 
 The Browser Agent is an AI-powered tool that controls web browsers through natural language commands.
 
-MAIN COMMANDS:
-  run         Start the browser agent (default)
-  launch      Launch Chrome with debugging
-  connect     Connect to existing Chrome instance
-  profiles    Manage browser profiles
-  diagnose    Run system diagnostics
-  clean       Clean up temporary files
-  config      Manage configuration
-  version     Show version information
-  help        Show this help
+{Colors.BRIGHT_YELLOW}MAIN COMMANDS:{Colors.RESET}
+  {Colors.BRIGHT_GREEN}run{Colors.RESET}         Start the browser agent (default)
+  {Colors.BRIGHT_GREEN}launch{Colors.RESET}      Launch Chrome with debugging
+  {Colors.BRIGHT_GREEN}connect{Colors.RESET}     Connect to existing Chrome instance
+  {Colors.BRIGHT_GREEN}profiles{Colors.RESET}    Manage browser profiles
+  {Colors.BRIGHT_GREEN}diagnose{Colors.RESET}    Run system diagnostics
+  {Colors.BRIGHT_GREEN}clean{Colors.RESET}       Clean up temporary files
+  {Colors.BRIGHT_GREEN}config{Colors.RESET}      Manage configuration
+  {Colors.BRIGHT_GREEN}version{Colors.RESET}     Show version information
+  {Colors.BRIGHT_GREEN}help{Colors.RESET}        Show this help
 
-GETTING STARTED:
+{Colors.BRIGHT_YELLOW}GETTING STARTED:{Colors.RESET}
   1. Set up your OpenAI API key in a .env file
-  2. Launch Chrome: uv run main.py launch (or python main.py launch)
-  3. Run the agent: uv run main.py run (or python main.py run)
+  2. Launch Chrome: {Colors.BRIGHT_CYAN}uv run main.py launch{Colors.RESET} (or {Colors.BRIGHT_CYAN}python main.py launch{Colors.RESET})
+  3. Run the agent: {Colors.BRIGHT_CYAN}uv run main.py run{Colors.RESET} (or {Colors.BRIGHT_CYAN}python main.py run{Colors.RESET})
 
-PROFILE TYPES:
-  temp        Temporary profile (clean session)
+{Colors.BRIGHT_YELLOW}PROFILE TYPES:{Colors.RESET}
+  {Colors.BRIGHT_MAGENTA}temp{Colors.RESET}        Temporary profile (clean session)
+  {Colors.BRIGHT_MAGENTA}default{Colors.RESET}     Default browser profile (saved logins, bookmarks, history)
 
 For detailed help on a specific command:
-  uv run main.py help <command> (or python main.py help <command>)
+  {Colors.BRIGHT_CYAN}uv run main.py help <command>{Colors.RESET} (or {Colors.BRIGHT_CYAN}python main.py help <command>{Colors.RESET})
 
-For more information, visit: https://github.com/your-repo/browser-agent
+For more information, visit: {Colors.BRIGHT_BLUE}{Colors.UNDERLINE}https://github.com/your-repo/browser-agent{Colors.RESET}
     """)
 def main():
     """Main CLI entry point with comprehensive command handling."""
@@ -1194,6 +1322,10 @@ def main():
     # Handle quiet mode
     if hasattr(args, 'quiet') and args.quiet:
         sys.stdout = open(os.devnull, 'w')
+    
+    # Handle no-color option
+    if hasattr(args, 'no_color') and args.no_color:
+        os.environ['NO_COLOR'] = '1'
     
     # Show banner unless suppressed
     if not hasattr(args, 'no_banner') or not args.no_banner:
@@ -1272,3 +1404,57 @@ def run_cli():
 
 if __name__ == "__main__":
     main()
+
+def setup_terminal():
+    """Setup terminal for better interactive experience."""
+    # Enable readline history and tab completion if available
+    try:
+        import readline
+        import atexit
+        
+        # Set up history file
+        histfile = os.path.join(os.path.expanduser("~"), ".browser_agent_history")
+        try:
+            readline.read_history_file(histfile)
+            # Default to 1000 lines of history
+            readline.set_history_length(1000)
+        except FileNotFoundError:
+            pass
+        
+        # Save history on exit
+        atexit.register(readline.write_history_file, histfile)
+        
+        # Enable tab completion
+        readline.parse_and_bind('tab: complete')
+        
+        return True
+    except ImportError:
+        return False
+
+def reset_cursor():
+    """Reset cursor position and clear any hanging output."""
+    sys.stdout.write('\r')  # Return to beginning of line
+    sys.stdout.flush()
+
+def print_clean_prompt(prompt_text):
+    """Print a clean prompt with proper cursor positioning."""
+    # Clear the current line and print the prompt
+    sys.stdout.write('\r\033[K')  # Clear current line
+    sys.stdout.write(prompt_text)
+    sys.stdout.flush()
+
+def print_agent_response(response_text: str):
+    """Print agent response with proper formatting, cursor handling, and colors."""
+    # Ensure we start on a clean line
+    sys.stdout.write('\r\033[K')  # Clear current line
+    sys.stdout.flush()
+    
+    separator = "="*50
+    print(f"\n{Colors.BRIGHT_MAGENTA}{separator}{Colors.RESET}")
+    print(f"{Colors.BRIGHT_MAGENTA}{Colors.BOLD}RESPONSE:{Colors.RESET}")
+    print(f"{Colors.BRIGHT_MAGENTA}{separator}{Colors.RESET}")
+    print(f"{Colors.WHITE}{response_text}{Colors.RESET}")
+    print(f"{Colors.BRIGHT_MAGENTA}{separator}{Colors.RESET}")
+    
+    # Ensure cursor is properly positioned for next prompt
+    sys.stdout.flush()
