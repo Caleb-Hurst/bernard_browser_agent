@@ -27,7 +27,7 @@ LLM_CONFIG = {
     },
     "groq": {
         "api_key": os.getenv("GROQ_API_KEY"),
-        "model": "qwen/qwen3-32b",
+        "model": "openai/gpt-oss-120b",
         "temperature": 0,
         "max_tokens": 2048,
     },

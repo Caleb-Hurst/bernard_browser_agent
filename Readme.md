@@ -5,11 +5,10 @@
 
 > **An AI-powered automation tool that controls web browsers through natural language commands**
 
-<div align="center">
-   <h2>AI Browser Navigation Demo</h2>
-   <iframe width="700" height="400" src="https://www.youtube.com/embed/Xp3w5H4-pOw" title="AI Browser Navigation Demo" frameborder="0" allowfullscreen></iframe>
-   <p><em>Watch the demo video above</em></p>
-</div>
+<a href="https://www.youtube.com/watch?v=Xp3w5H4-pOw" target="_blank">
+      <img src="https://img.youtube.com/vi/Xp3w5H4-pOw/maxresdefault.jpg" alt="AI Browser Navigation Demo" width="700" height="400" />
+   </a>
+   <p><em>Click the image above to watch the demo video</em></p>
 
 ## 📋 Table of Contents
 

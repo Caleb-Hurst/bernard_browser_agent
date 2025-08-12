@@ -134,13 +134,13 @@ def click(target_description) -> str:
             from browser.analyzers.page_analyzer import analyze_page
             analyze_page()
             
-            # Search again in the updated page_elements
+            # Search again in the updated page_elements with enhanced matching
             for idx, elem in enumerate(page_elements):
                 elem_type = elem.get('type', '').lower()
                 elem_text = elem.get('text', '').lower() if elem.get('text') else ''
                 elem_tag = elem.get('tagName', '').lower()
                 
-                # Match by type/tag and text if provided
+                # Enhanced type matching
                 type_match = False
                 if target_type:
                     type_match = (
@@ -149,7 +149,19 @@ def click(target_description) -> str:
                         (target_type == 'button' and (
                             elem_tag == 'button' or 
                             elem_type == 'button' or 
-                            'btn' in (elem.get('className', '') or '')
+                            elem_type == 'submit' or
+                            'btn' in (elem.get('className', '') or '') or
+                            elem.get('attributes', {}).get('role', '') == 'button'
+                        )) or
+                        (target_type == 'input' and (
+                            elem_tag == 'input' or
+                            elem_type == 'input' or
+                            elem_type in ['text', 'email', 'password', 'search', 'tel', 'url']
+                        )) or
+                        (target_type == 'link' and (
+                            elem_tag == 'a' or
+                            elem_type == 'link' or
+                            elem.get('attributes', {}).get('role', '') == 'link'
                         ))
                     )
                 else:
@@ -157,11 +169,19 @@ def click(target_description) -> str:
                     
                 text_match = False
                 if target_text:
+                    elem_value = elem.get('attributes', {}).get('value', '') or ''
+                    elem_placeholder = elem.get('attributes', {}).get('placeholder', '') or ''
+                    elem_aria_label = elem.get('attributes', {}).get('aria-label', '') or ''
+                    elem_title = elem.get('attributes', {}).get('title', '') or ''
+                    
                     text_match = (
                         target_text.lower() in elem_text or
-                        (elem.get('attributes', {}).get('value', '').lower() or '') == target_text.lower() or
-                        (elem.get('attributes', {}).get('placeholder', '').lower() or '') == target_text.lower() or
-                        (elem.get('attributes', {}).get('aria-label', '').lower() or '') == target_text.lower()
+                        elem_value.lower() == target_text.lower() or
+                        elem_placeholder.lower() == target_text.lower() or
+                        elem_aria_label.lower() == target_text.lower() or
+                        elem_title.lower() == target_text.lower() or
+                        # Partial matches for better flexibility
+                        any(target_text.lower() in field.lower() for field in [elem_value, elem_placeholder, elem_aria_label, elem_title] if field)
                     )
                 else:
                     text_match = True  # No text constraint
@@ -184,10 +204,98 @@ def click(target_description) -> str:
         x, y = element['center_x'], element['center_y']
         _update_cursor(x, y)
         
-        # Perform click
-        result = _click(x, y)
+        # Try multiple click strategies for better reliability
+        click_success = False
+        error_messages = []
         
-        return f"Clicked on element: {element['type']} with text '{element['text']}'"
+        # Strategy 1: Direct coordinate click
+        try:
+            _click(x, y)
+            click_success = True
+            print("Successfully clicked using coordinate method")
+        except Exception as e:
+            error_messages.append(f"Coordinate click failed: {str(e)}")
+            print(f"Coordinate click failed: {str(e)}")
+        
+        # Strategy 2: CSS selector click if coordinate failed
+        if not click_success and element.get('cssSelector'):
+            try:
+                page.click(element['cssSelector'], timeout=2000)
+                click_success = True
+                print("Successfully clicked using CSS selector")
+            except Exception as e:
+                error_messages.append(f"CSS selector click failed: {str(e)}")
+                print(f"CSS selector click failed: {str(e)}")
+        
+        # Strategy 3: JavaScript click if other methods failed
+        if not click_success and element.get('cssSelector'):
+            try:
+                page.evaluate(f"document.querySelector('{element['cssSelector']}').click()")
+                click_success = True
+                print("Successfully clicked using JavaScript")
+            except Exception as e:
+                error_messages.append(f"JavaScript click failed: {str(e)}")
+                print(f"JavaScript click failed: {str(e)}")
+        
+        # Strategy 4: Force click with JavaScript if element exists
+        if not click_success:
+            try:
+                # Find element by text content and click it
+                click_result = page.evaluate('''
+                    (targetText, targetType) => {
+                        const elements = Array.from(document.querySelectorAll('*'));
+                        const targetElement = elements.find(el => {
+                            const text = (el.innerText || el.textContent || '').trim();
+                            const type = el.tagName.toLowerCase();
+                            return text.includes(targetText) && 
+                                   (targetType === '' || type === targetType || el.type === targetType);
+                        });
+                        
+                        if (targetElement) {
+                            targetElement.click();
+                            return true;
+                        }
+                        return false;
+                    }
+                ''', element.get('text', ''), element.get('type', ''))
+                
+                if click_result:
+                    click_success = True
+                    print("Successfully clicked using JavaScript text search")
+                else:
+                    error_messages.append("JavaScript text search click failed: element not found")
+            except Exception as e:
+                error_messages.append(f"JavaScript text search click failed: {str(e)}")
+                print(f"JavaScript text search click failed: {str(e)}")
+        
+        # Strategy 5: Dispatch click event if all else fails
+        if not click_success and element.get('cssSelector'):
+            try:
+                page.evaluate(f'''
+                    (() => {{
+                        const element = document.querySelector('{element['cssSelector']}');
+                        if (element) {{
+                            const event = new MouseEvent('click', {{
+                                view: window,
+                                bubbles: true,
+                                cancelable: true
+                            }});
+                            element.dispatchEvent(event);
+                            return true;
+                        }}
+                        return false;
+                    }})()
+                ''')
+                click_success = True
+                print("Successfully clicked using dispatched event")
+            except Exception as e:
+                error_messages.append(f"Event dispatch click failed: {str(e)}")
+                print(f"Event dispatch click failed: {str(e)}")
+        
+        if click_success:
+            return f"Clicked on element: {element['type']} with text '{element['text']}'"
+        else:
+            return f"Failed to click element after trying multiple methods. Errors: {'; '.join(error_messages)}"
         
     except Exception as e:
         print(f"Error in click: {str(e)}")
@@ -197,12 +305,24 @@ def click(target_description) -> str:
 @tool
 def type(value):
     """
-    Types text into the currently focused element using keyboard simulation.
+    Clears the currently focused element and types new text using realistic keyboard simulation.
+    
+    Important: You must click on an input field, textarea, or editable element BEFORE 
+    using this tool to ensure the element is focused and ready to receive text input.
+    
+    This tool automatically clears any existing content in the field (using Ctrl+A/Cmd+A) 
+    before typing the new text, ensuring clean input without leftover characters.
+    Works with input fields, textareas, content-editable divs, and search boxes.
     
     Parameters:
-        value: The text to type
+        value (str): The text to type into the focused element (replaces existing content)
         
-    Returns: Result of the typing operation
+    Returns:
+        str: Confirmation message with the typed text or error details
+        
+    Example workflow:
+        1. click({"id": "3", "type": "input", "text": "Email"})  # Focus the field first
+        2. type("user@example.com")                              # Clears field and types new text
     """
     try:
         print(f"Typing value: {value}")
@@ -210,12 +330,47 @@ def type(value):
         if not value:
             return "Error: 'value' parameter is required."
         
-        print("Typing into currently focused element")
+        print("Clearing existing content and typing into currently focused element")
         
+        # Clear the existing content using JavaScript (more reliable)
+        try:
+            # Use JavaScript to clear the focused element and set new value
+            clear_result = page.evaluate('''
+                (newValue) => {
+                    const activeElement = document.activeElement;
+                    if (activeElement && (
+                        activeElement.tagName === 'INPUT' || 
+                        activeElement.tagName === 'TEXTAREA' || 
+                        activeElement.contentEditable === 'true'
+                    )) {
+                        // Clear existing content
+                        if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA') {
+                            activeElement.value = '';
+                            activeElement.focus();
+                            return true;
+                        } else if (activeElement.contentEditable === 'true') {
+                            activeElement.textContent = '';
+                            activeElement.focus();
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            ''', value)
+            
+            if clear_result:
+                print("Successfully cleared field using JavaScript")
+            else:
+                print("Warning: Could not identify focused element for clearing")
+                
+        except Exception as js_error:
+            print(f"JavaScript clear failed: {js_error}")
+        
+        # Type the new value
         page.keyboard.type(value)
         
-        print(f"Successfully typed value using keyboard")
-        return f"Typed '{value}' into currently focused element"
+        print(f"Successfully cleared field and typed value")
+        return f"Cleared field and typed '{value}' into currently focused element"
     
     except Exception as e:
         print(f"Error in type: {str(e)}")

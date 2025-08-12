@@ -20,12 +20,12 @@ def analyze_page():
     Extracts page content and interactive elements with ID references.
     
     Scans DOM for visible text and elements (buttons, links, inputs), 
-    including modals/popups. Returns elements in [ID][type]Text format
+    including modals/popups. Returns elements in [ID][type][cssSelector]Text format
     and creates internal map for precise targeting.
     
     Use after navigation/clicks or when page state changes.
     
-    Returns: Formatted page content with element IDs.
+    Returns: Formatted page content with element IDs and CSS selectors.
     """
     global page_elements
     try:
@@ -114,16 +114,69 @@ def analyze_page():
                     return result;
                 }
                 
-                // Generate CSS selector for element
+                // Generate CSS selector for element - enhanced version
                 function generateSelector(el) {
                     if (!el) return '';
-                    if (el.id) return '#' + CSS.escape(el.id);
                     
+                    // Priority 1: Use ID if available and unique
+                    if (el.id && el.id.trim()) {
+                        const escapedId = CSS.escape(el.id);
+                        if (document.querySelectorAll('#' + escapedId).length === 1) {
+                            return '#' + escapedId;
+                        }
+                    }
+                    
+                    // Priority 2: Use specific attributes that are likely unique
+                    const uniqueAttrs = ['data-testid', 'data-cy', 'data-test', 'name'];
+                    for (const attr of uniqueAttrs) {
+                        const value = el.getAttribute(attr);
+                        if (value && value.trim()) {
+                            const selector = `[${attr}="${CSS.escape(value)}"]`;
+                            if (document.querySelectorAll(selector).length === 1) {
+                                return selector;
+                            }
+                        }
+                    }
+                    
+                    // Priority 3: Build a path-based selector
                     let selector = el.tagName.toLowerCase();
                     
-                    if (el.classList && el.classList.length) {
-                        const classes = Array.from(el.classList).slice(0, 2);
-                        selector += '.' + classes.join('.');
+                    // Add type for inputs
+                    if (el.tagName.toLowerCase() === 'input' && el.type) {
+                        selector += `[type="${el.type}"]`;
+                    }
+                    
+                    // Add classes (limit to 2 most specific ones)
+                    if (el.classList && el.classList.length > 0) {
+                        const classes = Array.from(el.classList)
+                            .filter(cls => cls.length > 0 && !cls.match(/^(ng-|_|css-)/)) // Skip framework classes
+                            .slice(0, 2);
+                        if (classes.length > 0) {
+                            selector += '.' + classes.map(cls => CSS.escape(cls)).join('.');
+                        }
+                    }
+                    
+                    // Add nth-child if needed for uniqueness
+                    if (document.querySelectorAll(selector).length > 1) {
+                        const parent = el.parentElement;
+                        if (parent) {
+                            const siblings = Array.from(parent.children).filter(child => 
+                                child.tagName === el.tagName && 
+                                (el.className === child.className || (!el.className && !child.className))
+                            );
+                            if (siblings.length > 1) {
+                                const index = siblings.indexOf(el) + 1;
+                                selector += `:nth-child(${index})`;
+                            }
+                        }
+                    }
+                    
+                    // Final fallback: add parent context if still not unique
+                    if (document.querySelectorAll(selector).length > 1 && el.parentElement) {
+                        const parentTag = el.parentElement.tagName.toLowerCase();
+                        const parentClass = el.parentElement.classList.length > 0 ? 
+                            '.' + Array.from(el.parentElement.classList)[0] : '';
+                        selector = parentTag + parentClass + ' > ' + selector;
                     }
                     
                     return selector;
@@ -306,7 +359,10 @@ def analyze_page():
                         // Skip if type matches text exactly
                         if (text === type) continue;
                         
-                        content.push(`[${elementId}][${type}]${text}`);
+                        // Generate CSS selector for this element
+                        const cssSelector = generateSelector(el);
+                        
+                        content.push(`[${elementId}][${type}][${cssSelector}]${text}`);
                         
                         // Store enhanced element info
                         const rect = el.getBoundingClientRect();
@@ -315,6 +371,7 @@ def analyze_page():
                             tagName: el.tagName,
                             type: type,
                             text: text,
+                            cssSelector: cssSelector,
                             x: rect.left + window.pageXOffset,
                             y: rect.top + window.pageYOffset,
                             width: rect.width,
@@ -369,7 +426,8 @@ def analyze_page():
                                 let text = cleanText(el.textContent || el.value || el.placeholder || 
                                                    el.getAttribute('aria-label') || type);
                                 if (text !== type && text.length > 0) {
-                                    content.push(`[${elementId}][${type}]${text}`);
+                                    const cssSelector = generateSelector(el);
+                                    content.push(`[${elementId}][${type}][${cssSelector}]${text}`);
                                     
                                     // Store popup element info too
                                     const rect = el.getBoundingClientRect();
@@ -378,6 +436,7 @@ def analyze_page():
                                         tagName: el.tagName,
                                         type: type,
                                         text: text,
+                                        cssSelector: cssSelector,
                                         x: rect.left + window.pageXOffset,
                                         y: rect.top + window.pageYOffset,
                                         center_x: rect.left + rect.width/2 + window.pageXOffset,
@@ -410,10 +469,10 @@ def analyze_page():
             for item in page_content['content']:
                 # Skip elements where type matches display text exactly
                 if item.startswith('['):
-                    parts = item.split(']', 2)
-                    if len(parts) >= 3:
+                    parts = item.split(']', 3)  # Changed to 3 to handle [ID][type][selector]Text
+                    if len(parts) >= 4:  # Now we have ID, type, selector, and text
                         element_type = parts[1][1:]
-                        display_text = parts[2]
+                        display_text = parts[3]  # Text is now the 4th part
                         if display_text.strip() == element_type:
                             continue
                 
