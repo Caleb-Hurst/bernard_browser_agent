@@ -40,53 +40,20 @@ def inject_cursor_script():
     """
 
 def initialize_browser(options, connection_options=None):
+    from playwright.sync_api import sync_playwright
+    import os
+
     playwright = sync_playwright().start()
-
-    # Default connection options if none provided
-    if connection_options is None:
-        connection_options = {
-            "use_existing": True,
-            "cdp_endpoint": "http://localhost:9222",
-            "fallback_to_new": True
-        }
-
-    browser = None
-    page = None
-
-    # Try connecting to existing browser if requested
-    if connection_options.get("use_existing", False):
-        try:
-            print(f"Attempting to connect to existing browser at {connection_options['cdp_endpoint']}...")
-            browser = playwright.chromium.connect_over_cdp(connection_options["cdp_endpoint"])
-            print("Successfully connected to existing Chrome browser")
-
-            # Get the default context or create a new one
-            if (len(browser.contexts) > 0):
-                context = browser.contexts[0]
-            else:
-                # Enable video recording for new context
-                context = browser.new_context(viewport=None, record_video_dir="videos/")
-            # Create a new page in the existing browser
-            page = context.new_page()
-
-        except Exception as e:
-            print(f"Failed to connect to existing browser: {str(e)}")
-
-            # Fall back to launching a new browser if configured to do so
-            if not connection_options.get("fallback_to_new", True):
-                print("Fallback disabled. Exiting.")
-                raise e
-
-            print("Falling back to launching a new browser instance...")
-            browser = None
-
-    # Launch a new browser if needed
-    if browser is None:
-        print(f"Launching new browser with options: {options}")
-        browser = playwright.chromium.launch(**options)
-        # Create context with video recording enabled
-        context = browser.new_context(viewport=None, record_video_dir="videos/")
-        page = context.new_page()
+    print(f"Launching new browser with options: {options}")
+    browser = playwright.chromium.launch(**options)
+    context = browser.new_context(
+        viewport=None,
+        record_video_dir="videos/",
+        record_video_size={"width": 1280, "height": 720}
+    )
+    print(f"[DEBUG] Context video dir: {context._options.get('record_video_dir', None)}")
+    page = context.new_page()
+    print(f"[DEBUG] Page video property (should be None until closed): {getattr(page, 'video', None)}")
 
     # Inject cursor visualization CSS and JavaScript
     page.add_init_script(inject_cursor_script())
@@ -151,16 +118,25 @@ def initialize_browser(options, connection_options=None):
     user_agent = page.evaluate('() => navigator.userAgent')
     print(f"Browser setup successful. User agent: {user_agent}")
 
-    # Get video path if available
+    # After test, close page and context to finalize video
     video_path = None
     try:
+        page.close()
+        context.close()
+        print(f"[DEBUG] Page video property after close: {getattr(page, 'video', None)}")
         if hasattr(page, 'video') and page.video:
-            # Finalize video file before returning
-            page.close()
-            context.close()
             video_path = page.video.path()
+            print(f"[DEBUG] video_path after close: {video_path}")
+        else:
+            print("[DEBUG] No video property on page after close.")
     except Exception as e:
         print(f"Warning: Could not get video path: {e}")
+
+    videos_dir = os.path.join(os.getcwd(), "videos")
+    if os.path.exists(videos_dir):
+        print(f"[DEBUG] Listing files in videos/: {os.listdir(videos_dir)}")
+    else:
+        print("[DEBUG] videos/ directory does not exist.")
 
     return playwright, browser, page, video_path
 

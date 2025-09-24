@@ -56,6 +56,13 @@ class GitHubBrowserAgent:
             result = initialize_browser(BROWSER_OPTIONS, BROWSER_CONNECTION)
             if len(result) == 4:
                 self.playwright, self.browser, self.page, self.video_path = result
+                print(f"[DEBUG] Video path from browser setup: {self.video_path}")
+                if self.video_path:
+                    import os
+                    if os.path.exists(self.video_path):
+                        print(f"[DEBUG] Video file exists: {self.video_path}")
+                    else:
+                        print(f"[DEBUG] Video file NOT found: {self.video_path}")
             else:
                 self.playwright, self.browser, self.page = result
                 self.video_path = None
@@ -78,7 +85,14 @@ class GitHubBrowserAgent:
     def execute_test_scenario(self, scenario: str) -> Dict[str, Any]:
         """Execute a test scenario and return results"""
         if not self.agent:
-            return {"success": False, "error": "Agent not initialized"}
+            result = {
+                "success": False,
+                "scenario": scenario,
+                "error": "Agent not initialized",
+                "video_path": self.video_path
+            }
+            print(json.dumps(result))
+            return result
 
         print(f"🧪 Executing test scenario: {scenario}")
 
@@ -96,15 +110,19 @@ class GitHubBrowserAgent:
             }
 
             print("✅ Test scenario completed successfully!")
+            print(json.dumps(result))
             return result
 
         except Exception as e:
             print(f"❌ Test scenario failed: {str(e)}")
-            return {
+            result = {
                 "success": False,
                 "scenario": scenario,
-                "error": str(e)
+                "error": str(e),
+                "video_path": self.video_path
             }
+            print(json.dumps(result))
+            return result
 
     def cleanup(self):
         """Clean up browser resources"""
