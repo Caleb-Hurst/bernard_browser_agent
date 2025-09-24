@@ -18,9 +18,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+        run: |
+          # Use existing Python installation and verify version
+          python3 --version || echo "Python3 not found"
+          which python3 || echo "Python3 path not found"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,12 +35,23 @@ jobs:
 
       - name: Setup Browser Agent Dependencies
         run: |
-          if ! command -v uv &> /dev/null; then
-            curl -LsSf https://astral.sh/uv/install.sh | sh
-          fi
+          # Ensure uv is in PATH
           export PATH="$HOME/.local/bin:$PATH"
+
+          # Check if uv is available
+          if ! command -v uv &> /dev/null; then
+            echo "Installing uv..."
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
+
+          # Install Python dependencies
+          echo "Installing Python dependencies with uv..."
           uv sync
-          uv run playwright install chromium --with-deps
+
+          # Install Playwright browsers (skip system deps on self-hosted)
+          echo "Installing Playwright browsers..."
+          uv run playwright install chromium
 
       - name: Process Issues with Browser Testing
         env:
@@ -49,9 +61,21 @@ jobs:
           TIMEOUT: "300"
           TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/bernard_browser_agent' }}
         run: |
+          # Set PATH for uv and other tools
           export PATH="$HOME/.local/bin:$PATH"
+
+          # Verify tools are available
+          echo "🔧 Checking tools..."
+          which uv || echo "uv not found in PATH"
+          which node || echo "node not found in PATH"
+          uv --version || echo "uv version check failed"
+          node --version || echo "node version check failed"
+
+          # Process issues
           echo "🎯 Target Repository: $TARGET_REPO"
           echo "🔍 Scanning for ALL issues with 'needs-test' label..."
+          echo "📋 Running enhanced issue analysis and browser testing..."
+
           node integrations/enhanced_workflow.js
 
       - name: Upload test artifacts
