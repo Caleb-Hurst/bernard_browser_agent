@@ -51,7 +51,7 @@ def initialize_browser(options, connection_options=None):
         record_video_dir="videos/",
         record_video_size={"width": 1280, "height": 720}
     )
-    print(f"[DEBUG] Context video dir: {context._options.get('record_video_dir', None)}")
+    print(f"[DEBUG] Context created for video recording.")
     page = context.new_page()
     print(f"[DEBUG] Page video property (should be None until closed): {getattr(page, 'video', None)}")
 
