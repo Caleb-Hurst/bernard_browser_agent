@@ -135,11 +135,25 @@ async function executeBrowserTest(testScenario) {
     });
 
     pythonProcess.on('close', (code) => {
+      // Try to parse video_path from the output
+      let videoPath = null;
+      try {
+        const resultMatch = stdout.match(/\{[\s\S]*?\}/);
+        if (resultMatch) {
+          const resultJson = JSON.parse(resultMatch[0]);
+          if (resultJson.video_path) {
+            videoPath = resultJson.video_path;
+          }
+        }
+      } catch (err) {
+        console.error('Could not parse video path from Python output:', err);
+      }
       if (code === 0) {
         console.log("✅ Browser test completed successfully");
         resolve({
           success: true,
           output: stdout,
+          videoPath,
           exitCode: code
         });
       } else {
@@ -148,6 +162,7 @@ async function executeBrowserTest(testScenario) {
           success: false,
           output: stdout,
           error: stderr,
+          videoPath,
           exitCode: code
         });
       }
@@ -257,6 +272,22 @@ async function run() {
         commentBody += `## ✅ Browser Test Results\n\n**Status:** PASSED ✅\n\n**Test Output:**\n\`\`\`\n${testResult.output.slice(-1000)}\n\`\`\`\n\n`;
       } else {
         commentBody += `## ❌ Browser Test Results\n\n**Status:** FAILED ❌\n\n**Error:**\n\`\`\`\n${testResult.error || 'Unknown error'}\n\`\`\`\n\n**Output:**\n\`\`\`\n${testResult.output.slice(-500)}\n\`\`\`\n\n`;
+      }
+
+      // Attach video if available
+      if (testResult.videoPath) {
+        try {
+          const fs = require('fs');
+          const videoData = fs.readFileSync(testResult.videoPath);
+          const videoBase64 = Buffer.from(videoData).toString('base64');
+          // GitHub API supports direct file uploads via markdown
+          // But octokit does not support direct binary upload in comments
+          // Instead, use the markdown image/video embed syntax
+          // If file is under 10MB, this works
+          commentBody += `## 🎥 Test Video\n\n<video controls src='data:video/mp4;base64,${videoBase64}' width='600'></video>\n\n`;
+        } catch (err) {
+          commentBody += `\n⚠️ Could not attach video: ${err.message}\n`;
+        }
       }
     } catch (error) {
       console.error("Browser test execution failed:", error);

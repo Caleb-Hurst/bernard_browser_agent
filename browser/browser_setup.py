@@ -15,17 +15,17 @@ def inject_cursor_script():
     cursor.style.pointerEvents = 'none';
     cursor.style.zIndex = '999999';
     cursor.style.transition = 'left 0.05s, top 0.05s';
-    
+
     // Add cursor to the page
     document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(cursor);
     });
-    
+
     // If page already loaded, add cursor now
     if (document.body) {
         document.body.appendChild(cursor);
     }
-    
+
     // Function to update cursor position
     window.updateAICursor = function(x, y) {
         if (cursor && document.body && document.body.contains(cursor)) {
@@ -41,7 +41,7 @@ def inject_cursor_script():
 
 def initialize_browser(options, connection_options=None):
     playwright = sync_playwright().start()
-    
+
     # Default connection options if none provided
     if connection_options is None:
         connection_options = {
@@ -49,46 +49,48 @@ def initialize_browser(options, connection_options=None):
             "cdp_endpoint": "http://localhost:9222",
             "fallback_to_new": True
         }
-    
+
     browser = None
     page = None
-    
+
     # Try connecting to existing browser if requested
     if connection_options.get("use_existing", False):
         try:
             print(f"Attempting to connect to existing browser at {connection_options['cdp_endpoint']}...")
             browser = playwright.chromium.connect_over_cdp(connection_options["cdp_endpoint"])
             print("Successfully connected to existing Chrome browser")
-            
+
             # Get the default context or create a new one
             if (len(browser.contexts) > 0):
                 context = browser.contexts[0]
             else:
-                context = browser.new_context(viewport=None)
-                
+                # Enable video recording for new context
+                context = browser.new_context(viewport=None, record_video_dir="videos/")
             # Create a new page in the existing browser
             page = context.new_page()
-            
+
         except Exception as e:
             print(f"Failed to connect to existing browser: {str(e)}")
-            
+
             # Fall back to launching a new browser if configured to do so
             if not connection_options.get("fallback_to_new", True):
                 print("Fallback disabled. Exiting.")
                 raise e
-                
+
             print("Falling back to launching a new browser instance...")
             browser = None
-    
+
     # Launch a new browser if needed
     if browser is None:
         print(f"Launching new browser with options: {options}")
         browser = playwright.chromium.launch(**options)
-        page = browser.new_page(viewport=None)
-    
+        # Create context with video recording enabled
+        context = browser.new_context(viewport=None, record_video_dir="videos/")
+        page = context.new_page()
+
     # Inject cursor visualization CSS and JavaScript
     page.add_init_script(inject_cursor_script())
-    
+
     # Add script to prevent new tabs from opening
     page.add_init_script("""
         window.open = function(url, name, features) {
@@ -98,7 +100,7 @@ def initialize_browser(options, connection_options=None):
             }
             return window;
         };
-        
+
         // Override link behavior to prevent target="_blank"
         document.addEventListener('click', function(e) {
             const link = e.target.closest('a');
@@ -109,10 +111,10 @@ def initialize_browser(options, connection_options=None):
             }
         }, true);
     """)
-    
+
     # Navigate to a blank page first to ensure script loading
     page.goto('about:blank')
-    
+
     # Ensure cursor is created and function is available
     page.evaluate("""
         () => {
@@ -131,7 +133,7 @@ def initialize_browser(options, connection_options=None):
                 cursor.style.transition = 'left 0.05s, top 0.05s';
                 document.body.appendChild(cursor);
             }
-            
+
             if (typeof window.updateAICursor !== 'function') {
                 window.updateAICursor = function(x, y) {
                     const cursor = document.getElementById('ai-agent-cursor');
@@ -145,11 +147,22 @@ def initialize_browser(options, connection_options=None):
             }
         }
     """)
-    
+
     user_agent = page.evaluate('() => navigator.userAgent')
     print(f"Browser setup successful. User agent: {user_agent}")
-    
-    return playwright, browser, page
+
+    # Get video path if available
+    video_path = None
+    try:
+        if hasattr(page, 'video') and page.video:
+            # Finalize video file before returning
+            page.close()
+            context.close()
+            video_path = page.video.path()
+    except Exception as e:
+        print(f"Warning: Could not get video path: {e}")
+
+    return playwright, browser, page, video_path
 
 def close_browser(playwright, browser, is_connected=False):
     try:

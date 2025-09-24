@@ -32,6 +32,7 @@ class GitHubBrowserAgent:
         self.browser = None
         self.page = None
         self.agent = None
+        self.video_path = None
 
     def setup(self) -> bool:
         """Initialize the browser agent"""
@@ -52,7 +53,12 @@ class GitHubBrowserAgent:
 
             # Initialize browser
             print("🌐 Initializing browser...")
-            self.playwright, self.browser, self.page = initialize_browser(BROWSER_OPTIONS, BROWSER_CONNECTION)
+            result = initialize_browser(BROWSER_OPTIONS, BROWSER_CONNECTION)
+            if len(result) == 4:
+                self.playwright, self.browser, self.page, self.video_path = result
+            else:
+                self.playwright, self.browser, self.page = result
+                self.video_path = None
 
             # Initialize browser controller
             print("🎮 Setting up browser controller...")
@@ -85,7 +91,8 @@ class GitHubBrowserAgent:
                 "scenario": scenario,
                 "output": response.get("output", ""),
                 "input": response.get("input", scenario),
-                "messages": len(response.get("messages", []))
+                "messages": len(response.get("messages", [])),
+                "video_path": self.video_path
             }
 
             print("✅ Test scenario completed successfully!")
@@ -141,9 +148,11 @@ def main():
         # Set GitHub Actions outputs
         if os.getenv("GITHUB_ACTIONS"):
             output_text = result.get('output', '').replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D')
+            video_path = result.get('video_path', '')
             with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                 f.write(f"test_success={str(result['success']).lower()}\n")
                 f.write(f"test_output={output_text}\n")
+                f.write(f"test_video_path={video_path}\n")
 
         # Exit with appropriate code
         sys.exit(0 if result["success"] else 1)
