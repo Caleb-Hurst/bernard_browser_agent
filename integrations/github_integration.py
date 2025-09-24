@@ -101,6 +101,26 @@ class GitHubBrowserAgent:
             # Execute the scenario
             response = self.agent.invoke(scenario)
 
+            # After scenario, close page and context to finalize video
+            video_path = None
+            try:
+                if self.page:
+                    self.page.close()
+                if self.browser:
+                    # Get context from page
+                    context = self.page.context if self.page else None
+                    if context:
+                        context.close()
+                if self.page and hasattr(self.page, 'video') and self.page.video:
+                    video_path = self.page.video.path()
+                    print(f"[DEBUG] video_path after close: {video_path}")
+                else:
+                    print("[DEBUG] No video property on page after close.")
+            except Exception as e:
+                print(f"Warning: Could not get video path: {e}")
+
+            self.video_path = video_path
+
             result = {
                 "success": True,
                 "scenario": scenario,
