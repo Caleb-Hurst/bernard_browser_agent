@@ -4,7 +4,7 @@ This integration connects your existing GitHub Actions workflow with the Browser
 
 ## 🚀 What This Does
 
-1. **Scans Issues**: Monitors issues with the `needs-test` label  
+1. **Scans Issues**: Monitors issues with the `needs-test` label
 2. **Analyzes Content**: Uses LLM to understand the issue and associated PR
 3. **Generates Test Scenarios**: Creates browser automation test scripts
 4. **Executes Tests**: Runs the browser agent to actually test the functionality

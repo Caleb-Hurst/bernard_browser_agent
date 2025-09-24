@@ -59,7 +59,7 @@ The workflow will post a comment like this:
 ## 📋 Issue Analysis
 The login form validation issue affects user authentication flow...
 
-## 🔄 Associated PR (#123) Summary  
+## 🔄 Associated PR (#123) Summary
 This PR adds client-side email validation using regex patterns...
 
 ## 🧪 Generated Test Scenario
@@ -165,13 +165,13 @@ Perfect for testing:
 ## 💡 Pro Tips
 
 1. **Start simple** - Test with basic scenarios first
-2. **Use realistic URLs** - Point to actual staging/test environments  
+2. **Use realistic URLs** - Point to actual staging/test environments
 3. **Be specific** - Detailed issue descriptions = better test scenarios
 4. **Monitor usage** - Keep an eye on API costs and runner usage
 5. **Iterate** - Refine test scenarios based on results
 
 ## 🎉 Ready to Go!
 
-Your browser agent is now integrated with GitHub Actions and ready to automatically test your issues! 
+Your browser agent is now integrated with GitHub Actions and ready to automatically test your issues!
 
 Create an issue, add the `needs-test` label, and watch your automated QA assistant in action! 🚀

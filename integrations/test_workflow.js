@@ -38,7 +38,7 @@ You can test this at: https://www.google.com (as a demo - just check the search 
 async function testIssueAnalysis() {
   console.log("🧪 Testing Issue Analysis and Test Generation");
   console.log("=" .repeat(60));
-  
+
   if (!process.env.OPENAI_API_KEY) {
     console.log("❌ OPENAI_API_KEY not set. Skipping LLM testing.");
     return;
@@ -98,7 +98,7 @@ Generate a comprehensive browser test scenario for this issue.`;
     if (process.argv.includes('--run-browser')) {
       console.log("\n🤖 Executing browser test...");
       const { spawn } = require('child_process');
-      
+
       return new Promise((resolve) => {
         const pythonProcess = spawn('uv', ['run', 'python', 'integrations/github_integration.py', testScenario], {
           stdio: 'inherit'
@@ -131,7 +131,7 @@ async function testGitHubAPI() {
 
   try {
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-    
+
     // Test API connection
     const { data: user } = await octokit.rest.users.getAuthenticated();
     console.log(`✅ Connected to GitHub API as: ${user.login}`);
@@ -151,7 +151,7 @@ async function testGitHubAPI() {
 async function main() {
   console.log("🚀 Browser Agent GitHub Integration Test Suite");
   console.log("=" .repeat(70));
-  
+
   console.log(`
 🔧 Test Configuration:
 - OpenAI API Key: ${process.env.OPENAI_API_KEY ? '✅ Set' : '❌ Missing'}

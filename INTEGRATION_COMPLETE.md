@@ -74,7 +74,7 @@ Actions → Browser Agent Issue Testing → Run workflow → Custom testing
 
 ### What You Get
 
-**Before**: Issue analysis only  
+**Before**: Issue analysis only
 **Now**: Issue analysis + **Real browser testing** + Comprehensive results
 
 ## 🧪 Test It Right Now
@@ -97,14 +97,14 @@ node integrations/test_workflow.js --run-browser
 1. **Create an issue** with this content:
    ```markdown
    # Test Login Form
-   
+
    Please test the login functionality at https://httpbin.org/forms/post
-   
+
    Steps:
    1. Fill out the form with test data
-   2. Submit the form  
+   2. Submit the form
    3. Verify the response shows submitted data
-   
+
    This is a test of the automated browser testing workflow.
    ```
 
@@ -117,7 +117,7 @@ node integrations/test_workflow.js --run-browser
 You now have a **complete automated QA system** that:
 
 - ✅ **Analyzes issues** with AI
-- ✅ **Generates test scenarios** automatically  
+- ✅ **Generates test scenarios** automatically
 - ✅ **Executes real browser tests**
 - ✅ **Reports detailed results**
 - ✅ **Works with any repository** (configurable)
@@ -130,7 +130,7 @@ Your integration supports advanced features:
 ### Cross-Repository Testing
 Test issues in other repositories by configuring the target repo in the workflow.
 
-### Custom Test Scenarios  
+### Custom Test Scenarios
 Manual workflow dispatch allows custom test scenarios for specific testing needs.
 
 ### Multiple LLM Providers
@@ -146,7 +146,7 @@ Detailed test results with screenshots and execution logs.
 Your browser agent now has **automated GitHub Actions integration** and can test issues automatically. The workflow will:
 
 1. **Monitor** for `needs-test` labels
-2. **Analyze** issues with AI  
+2. **Analyze** issues with AI
 3. **Generate** browser test scenarios
 4. **Execute** real browser testing
 5. **Report** comprehensive results

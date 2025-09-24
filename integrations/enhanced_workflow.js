@@ -109,7 +109,7 @@ Generate a comprehensive browser test scenario for this issue.`;
 async function executeBrowserTest(testScenario) {
   return new Promise((resolve, reject) => {
     console.log("🤖 Executing browser automation test...");
-    
+
     const pythonScript = path.join(BROWSER_AGENT_PATH, 'integrations', 'github_integration.py');
     const pythonProcess = spawn('python3', [pythonScript, testScenario], {
       cwd: BROWSER_AGENT_PATH,
@@ -240,12 +240,12 @@ async function run() {
     try {
       console.log("🧪 Generating test scenario...");
       const testScenario = await generateTestScenario(title, body, prAnalysis);
-      
+
       commentBody += `## 🧪 Generated Test Scenario\n\n\`\`\`\n${testScenario}\n\`\`\`\n\n`;
-      
+
       console.log("🤖 Executing browser automation test...");
       const testResult = await executeBrowserTest(testScenario);
-      
+
       if (testResult.success) {
         commentBody += `## ✅ Browser Test Results\n\n**Status:** PASSED ✅\n\n**Test Output:**\n\`\`\`\n${testResult.output.slice(-1000)}\n\`\`\`\n\n`;
       } else {

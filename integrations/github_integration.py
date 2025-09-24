@@ -24,7 +24,7 @@ from cli.chrome_launcher import launch_chrome_with_debugging
 
 class GitHubBrowserAgent:
     """Browser Agent wrapper for GitHub Actions integration"""
-    
+
     def __init__(self, headless: bool = True, timeout: int = 300):
         self.headless = headless
         self.timeout = timeout
@@ -32,16 +32,16 @@ class GitHubBrowserAgent:
         self.browser = None
         self.page = None
         self.agent = None
-        
+
     def setup(self) -> bool:
         """Initialize the browser agent"""
         print("🔧 Setting up Browser Agent for GitHub Actions...")
-        
+
         try:
             # Configure for headless operation in CI
             BROWSER_OPTIONS["headless"] = self.headless
             BROWSER_OPTIONS["timeout"] = self.timeout * 1000  # Convert to milliseconds
-            
+
             # Launch Chrome with debugging if needed
             if not self.headless:
                 print("🌐 Launching Chrome with debugging...")
@@ -49,37 +49,37 @@ class GitHubBrowserAgent:
                 if not chrome_launched:
                     print("❌ Failed to launch Chrome")
                     return False
-            
+
             # Initialize browser
             print("🌐 Initializing browser...")
             self.playwright, self.browser, self.page = initialize_browser(BROWSER_OPTIONS, BROWSER_CONNECTION)
-            
+
             # Initialize browser controller
             print("🎮 Setting up browser controller...")
             initialize(self.page)
-            
+
             # Create agent
             print("🤖 Creating AI agent...")
             self.agent = create_agent()
-            
+
             print("✅ Browser Agent setup complete!")
             return True
-            
+
         except Exception as e:
             print(f"❌ Setup failed: {str(e)}")
             return False
-    
+
     def execute_test_scenario(self, scenario: str) -> Dict[str, Any]:
         """Execute a test scenario and return results"""
         if not self.agent:
             return {"success": False, "error": "Agent not initialized"}
-        
+
         print(f"🧪 Executing test scenario: {scenario}")
-        
+
         try:
             # Execute the scenario
             response = self.agent.invoke(scenario)
-            
+
             result = {
                 "success": True,
                 "scenario": scenario,
@@ -87,10 +87,10 @@ class GitHubBrowserAgent:
                 "input": response.get("input", scenario),
                 "messages": len(response.get("messages", []))
             }
-            
+
             print("✅ Test scenario completed successfully!")
             return result
-            
+
         except Exception as e:
             print(f"❌ Test scenario failed: {str(e)}")
             return {
@@ -98,7 +98,7 @@ class GitHubBrowserAgent:
                 "scenario": scenario,
                 "error": str(e)
             }
-    
+
     def cleanup(self):
         """Clean up browser resources"""
         print("🧹 Cleaning up browser resources...")
@@ -114,40 +114,40 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python github_integration.py '<test_scenario>'")
         sys.exit(1)
-    
+
     # Get test scenario from command line
     test_scenario = sys.argv[1]
     headless = os.getenv("HEADLESS", "true").lower() == "true"
     timeout = int(os.getenv("TIMEOUT", "300"))
-    
+
     # Initialize agent
     agent = GitHubBrowserAgent(headless=headless, timeout=timeout)
-    
+
     try:
         # Setup
         if not agent.setup():
             print("❌ Failed to setup browser agent")
             sys.exit(1)
-        
+
         # Execute test
         result = agent.execute_test_scenario(test_scenario)
-        
+
         # Output results for GitHub Actions
         print("\n" + "="*60)
         print("TEST RESULTS:")
         print("="*60)
         print(json.dumps(result, indent=2))
-        
+
         # Set GitHub Actions outputs
         if os.getenv("GITHUB_ACTIONS"):
             output_text = result.get('output', '').replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D')
             with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                 f.write(f"test_success={str(result['success']).lower()}\n")
                 f.write(f"test_output={output_text}\n")
-        
+
         # Exit with appropriate code
         sys.exit(0 if result["success"] else 1)
-        
+
     except KeyboardInterrupt:
         print("\n⏹️ Test interrupted by user")
         sys.exit(1)

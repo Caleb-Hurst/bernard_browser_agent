@@ -96,7 +96,7 @@ Browser Agent includes powerful GitHub Actions integration for automated issue t
 When you label an issue with `needs-test`, the workflow automatically:
 
 1. **📋 Analyzes** the issue with AI
-2. **🔍 Finds** associated pull requests  
+2. **🔍 Finds** associated pull requests
 3. **🧪 Generates** browser test scenarios
 4. **🤖 Executes** real browser tests
 5. **📝 Reports** results back to the issue
@@ -122,7 +122,7 @@ Get comprehensive testing results like this:
 ## 📋 Issue Analysis
 Login form validation needs improvement for better UX...
 
-## 🧪 Generated Test Scenario  
+## 🧪 Generated Test Scenario
 Navigate to /login, test invalid email formats, verify errors...
 
 ## ✅ Browser Test Results
