@@ -9,6 +9,11 @@ on:
         type: string
         default: 'Caleb-Hurst/First-Workflow'
 
+permissions:
+  issues: write
+  contents: read
+  pull-requests: write
+
 jobs:
   browser-testing:
     runs-on: self-hosted

@@ -111,12 +111,13 @@ async function executeBrowserTest(testScenario) {
     console.log("🤖 Executing browser automation test...");
 
     const pythonScript = path.join(BROWSER_AGENT_PATH, 'integrations', 'github_integration.py');
-    const pythonProcess = spawn('python3', [pythonScript, testScenario], {
+    const pythonProcess = spawn('uv', ['run', 'python', pythonScript, testScenario], {
       cwd: BROWSER_AGENT_PATH,
       env: {
         ...process.env,
         HEADLESS: "true", // Run in headless mode for CI
-        TIMEOUT: "180"    // 3 minute timeout
+        TIMEOUT: "180",   // 3 minute timeout
+        PATH: `${process.env.HOME}/.local/bin:${process.env.PATH}` // Ensure uv is in PATH
       }
     });
 
