@@ -1,0 +1,24 @@
+{
+  "name": "browser-agent-github-integration",
+  "version": "1.0.0",
+  "description": "GitHub Actions integration for Browser Agent",
+  "main": "integrations/enhanced_workflow.js",
+  "scripts": {
+    "test": "node integrations/enhanced_workflow.js",
+    "test-browser": "uv run python integrations/github_integration.py"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.0",
+    "openai": "^4.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Caleb-Hurst/bernard_browser_agent.git"
+  },
+  "author": "Caleb Hurst",
+  "license": "MIT"
+}

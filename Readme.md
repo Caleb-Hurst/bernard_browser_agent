@@ -15,6 +15,7 @@
 - [Overview](#overview)
 - [Features](#features)
 - [Quick Start](#quick-start)
+- [GitHub Integration](#github-integration)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
@@ -86,7 +87,53 @@ uv run main.py run
 uv run main.py run --task "Navigate to google.com and search for 'AI news'"
 ```
 
-## 📚 Documentation
+## � GitHub Integration
+
+Browser Agent includes powerful GitHub Actions integration for automated issue testing:
+
+### 🚀 Automated QA Workflow
+
+When you label an issue with `needs-test`, the workflow automatically:
+
+1. **📋 Analyzes** the issue with AI
+2. **🔍 Finds** associated pull requests  
+3. **🧪 Generates** browser test scenarios
+4. **🤖 Executes** real browser tests
+5. **📝 Reports** results back to the issue
+
+### ⚡ Quick Setup
+
+```bash
+# 1. Configure repository secrets (Settings → Secrets)
+OPENAI_API_KEY=your_openai_key_here
+
+# 2. Set up a self-hosted runner (for browser testing)
+# Follow GitHub's self-hosted runner setup guide
+
+# 3. Create an issue and add the "needs-test" label
+# 4. Watch automated testing in action! 🎉
+```
+
+### 📊 Enhanced Issue Comments
+
+Get comprehensive testing results like this:
+
+```markdown
+## 📋 Issue Analysis
+Login form validation needs improvement for better UX...
+
+## 🧪 Generated Test Scenario  
+Navigate to /login, test invalid email formats, verify errors...
+
+## ✅ Browser Test Results
+**Status:** PASSED ✅
+✅ Validation errors display correctly
+✅ Form submission blocked for invalid data
+```
+
+**👉 [Full GitHub Integration Guide](GITHUB_INTEGRATION.md)**
+
+## �📚 Documentation
 
 Comprehensive documentation is available in the `docs/` folder:
 
