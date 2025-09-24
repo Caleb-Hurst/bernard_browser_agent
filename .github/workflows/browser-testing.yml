@@ -60,11 +60,11 @@ jobs:
 
       - name: Process Issues with Browser Testing
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.CROSS_REPO_TOKEN || secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           HEADLESS: "true"
           TIMEOUT: "300"
-          TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/bernard_browser_agent' }}
+          TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/First-Workflow' }}
         run: |
           # Set PATH for uv and other tools
           export PATH="$HOME/.local/bin:$PATH"

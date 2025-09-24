@@ -263,7 +263,7 @@ async function run() {
       commentBody += `## ❌ Browser Test Results\n\n**Status:** ERROR ❌\n\n**Error:** Failed to execute browser test: ${error.message}\n\n`;
     }
 
-    // Post the comment
+    // Post the comment (with cross-repo permission handling)
     try {
       await octokit.issues.createComment({
         owner,
@@ -273,7 +273,15 @@ async function run() {
       });
       console.log(`✅ Posted comprehensive analysis and test results on Issue #${number}`);
     } catch (error) {
-      console.error(`Failed to comment on issue #${number}:`, error);
+      if (error.status === 403 && error.message.includes('Resource not accessible by integration')) {
+        console.log(`⚠️  Cannot comment on cross-repo issue #${number} - insufficient permissions`);
+        console.log(`📋 Test results for Issue #${number}:`);
+        console.log('==========================================');
+        console.log(commentBody);
+        console.log('==========================================');
+      } else {
+        console.error(`❌ Failed to comment on issue #${number}:`, error);
+      }
     }
   }
 }
