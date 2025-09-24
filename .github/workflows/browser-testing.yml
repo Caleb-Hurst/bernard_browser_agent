@@ -64,7 +64,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           HEADLESS: "true"
           TIMEOUT: "300"
-          TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/First-Workflow' }}
+          TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/bernard_browser_agent' }}
         run: |
           # Set PATH for uv and other tools
           export PATH="$HOME/.local/bin:$PATH"
