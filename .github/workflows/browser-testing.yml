@@ -1,17 +1,6 @@
 name: Browser Agent QA Testing
 
 on:
-  # Manual trigger only          TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/First-Workflow' }}
-        run: |
-          # Set PATH for uv
-          export PATH="$HOME/.local/bin:$PATH"
-
-          echo "🎯 Target Repository: $TARGET_REPO"
-          echo "🔍 Scanning for ALL issues with 'needs-test' label..."
-          echo "📋 Running enhanced issue analysis and browser testing..."
-
-          # Run the enhanced workflow (processes all "needs-test" issues)
-          node integrations/enhanced_workflow.js-test" issues and process them all
   workflow_dispatch:
     inputs:
       target_repo:
@@ -22,8 +11,6 @@ on:
 
 jobs:
   browser-testing:
-    # This needs to run on a self-hosted runner with GUI support
-    # Replace 'self-hosted' with your runner label
     runs-on: self-hosted
 
     steps:
@@ -35,7 +22,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Setup Node.js (for GitHub API integration)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -47,44 +34,25 @@ jobs:
 
       - name: Setup Browser Agent Dependencies
         run: |
-          # Install uv if not present
           if ! command -v uv &> /dev/null; then
             curl -LsSf https://astral.sh/uv/install.sh | sh
           fi
           export PATH="$HOME/.local/bin:$PATH"
-
-          # Install Python dependencies
           uv sync
-
-          # Install Playwright browsers for headless testing
           uv run playwright install chromium --with-deps
 
       - name: Process Issues with Browser Testing
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           HEADLESS: "true"
           TIMEOUT: "300"
-          TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/First-Workflow' }}
-          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+          TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/bernard_browser_agent' }}
         run: |
-          # Set PATH for uv
           export PATH="$HOME/.local/bin:$PATH"
-
           echo "🎯 Target Repository: $TARGET_REPO"
-
-          if [ -n "${{ github.event.inputs.test_scenario }}" ]; then
-            # Custom test scenario mode
-            echo "🧪 Running custom test scenario..."
-            uv run python integrations/github_integration.py "${{ github.event.inputs.test_scenario }}"
-          else
-            # Issue processing mode (like your First-Workflow)
-            echo "🔍 Scanning for 'needs-test' issues in $TARGET_REPO..."
-            echo "� Running enhanced issue analysis and browser testing..."
-            node integrations/enhanced_workflow.js
-          fi
+          echo "🔍 Scanning for ALL issues with 'needs-test' label..."
+          node integrations/enhanced_workflow.js
 
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
@@ -92,19 +60,7 @@ jobs:
         with:
           name: browser-test-results
           path: |
-            browser-agent/logs/
-            browser-agent/screenshots/
+            logs/
+            screenshots/
             *.log
           retention-days: 7
-
-      - name: Comment on Issue (if test failed)
-        if: failure() && github.event.issue.number
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: ${{ github.event.issue.number }},
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '❌ Browser automation testing failed. Please check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
-            });
