@@ -1,55 +1,50 @@
-name: Browser Agent Issue Testing
+name: Browser Agent QA Testing
 
 on:
-  # Trigger on issues with specific labels
-  issues:
-    types: [labeled, opened, edited]
-  
-  # Manual trigger for testing
+  # Manual trigger only          TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/First-Workflow' }}
+        run: |
+          # Set PATH for uv
+          export PATH="$HOME/.local/bin:$PATH"
+
+          echo "🎯 Target Repository: $TARGET_REPO"
+          echo "🔍 Scanning for ALL issues with 'needs-test' label..."
+          echo "📋 Running enhanced issue analysis and browser testing..."
+
+          # Run the enhanced workflow (processes all "needs-test" issues)
+          node integrations/enhanced_workflow.js-test" issues and process them all
   workflow_dispatch:
     inputs:
-      issue_number:
-        description: 'Issue number to test (leave empty to test all "needs-test" issues)'
-        required: false
-        type: string
-      test_scenario:
-        description: 'Custom test scenario (overrides issue-based testing)'
-        required: false
-        type: string
       target_repo:
-        description: 'Target repository (owner/repo format, defaults to current repo)'
+        description: 'Target repository to scan (owner/repo format)'
         required: false
         type: string
-        default: 'Caleb-Hurst/bernard_browser_agent'
+        default: 'Caleb-Hurst/First-Workflow'
 
 jobs:
   browser-testing:
     # This needs to run on a self-hosted runner with GUI support
     # Replace 'self-hosted' with your runner label
     runs-on: self-hosted
-    
-    # Only run if the issue has the 'needs-test' label or manual dispatch
-    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.issue.labels.*.name, 'needs-test') }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      
+
       - name: Setup Node.js (for GitHub API integration)
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-      
+
       - name: Install Node.js dependencies
         run: |
           npm init -y
           npm install @octokit/rest openai dotenv
-      
+
       - name: Setup Browser Agent Dependencies
         run: |
           # Install uv if not present
@@ -57,14 +52,14 @@ jobs:
             curl -LsSf https://astral.sh/uv/install.sh | sh
           fi
           export PATH="$HOME/.local/bin:$PATH"
-          
+
           # Install Python dependencies
           uv sync
-          
+
           # Install Playwright browsers for headless testing
           uv run playwright install chromium --with-deps
-      
-      - name: Run Browser Agent Testing
+
+      - name: Process Issues with Browser Testing
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -72,21 +67,25 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           HEADLESS: "true"
           TIMEOUT: "300"
-          TARGET_REPO: ${{ github.event.inputs.target_repo || github.repository }}
+          TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/First-Workflow' }}
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
         run: |
           # Set PATH for uv
           export PATH="$HOME/.local/bin:$PATH"
-          
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.test_scenario }}" ]; then
-            # Manual test scenario
+
+          echo "🎯 Target Repository: $TARGET_REPO"
+
+          if [ -n "${{ github.event.inputs.test_scenario }}" ]; then
+            # Custom test scenario mode
             echo "🧪 Running custom test scenario..."
             uv run python integrations/github_integration.py "${{ github.event.inputs.test_scenario }}"
           else
-            # Run the enhanced workflow for issue testing
-            echo "🔍 Running issue analysis and browser testing..."
+            # Issue processing mode (like your First-Workflow)
+            echo "🔍 Scanning for 'needs-test' issues in $TARGET_REPO..."
+            echo "� Running enhanced issue analysis and browser testing..."
             node integrations/enhanced_workflow.js
           fi
-      
+
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -97,7 +96,7 @@ jobs:
             browser-agent/screenshots/
             *.log
           retention-days: 7
-      
+
       - name: Comment on Issue (if test failed)
         if: failure() && github.event.issue.number
         uses: actions/github-script@v7

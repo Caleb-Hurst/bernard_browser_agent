@@ -4,8 +4,8 @@ const { OpenAI } = require("openai");
 const { spawn } = require('child_process');
 const path = require('path');
 
-// Get target repository from environment or default to current repo
-const targetRepo = process.env.TARGET_REPO || "Caleb-Hurst/bernard_browser_agent";
+// Get target repository from environment or default to First-Workflow
+const targetRepo = process.env.TARGET_REPO || "Caleb-Hurst/First-Workflow";
 const [owner, repo] = targetRepo.split('/');
 const label = "needs-test";
 
@@ -160,6 +160,10 @@ async function executeBrowserTest(testScenario) {
 }
 
 async function run() {
+  console.log(`🎯 Processing issues in: ${targetRepo}`);
+  console.log(`🔍 Scanning for ALL issues with label "${label}"`);
+
+  // Process all issues with "needs-test" label (exactly like First-Workflow)
   const issues = await octokit.issues.listForRepo({
     owner,
     repo,
@@ -169,9 +173,11 @@ async function run() {
   });
 
   if (!issues.data.length) {
-    console.log(`No issues found with label "${label}".`);
+    console.log(`📭 No issues found with label "${label}" in ${targetRepo}.`);
     return;
   }
+
+  console.log(`📋 Found ${issues.data.length} issue(s) with "${label}" label to process`);
 
   for (const issue of issues.data) {
     const { number, title, body, labels } = issue;
