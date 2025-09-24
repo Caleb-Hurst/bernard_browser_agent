@@ -91,10 +91,11 @@ class GitHubBrowserAgent:
                 "error": "Agent not initialized",
                 "video_path": self.video_path
             }
+            print("===RESULT_JSON===")
             print(json.dumps(result))
             return result
 
-        print(f"🧪 Executing test scenario: {scenario}")
+        print(f"\U0001F9EA Executing test scenario: {scenario}")
 
         try:
             # Execute the scenario
@@ -109,18 +110,20 @@ class GitHubBrowserAgent:
                 "video_path": self.video_path
             }
 
-            print("✅ Test scenario completed successfully!")
+            print("\u2705 Test scenario completed successfully!")
+            print("===RESULT_JSON===")
             print(json.dumps(result))
             return result
 
         except Exception as e:
-            print(f"❌ Test scenario failed: {str(e)}")
+            print(f"\u274c Test scenario failed: {str(e)}")
             result = {
                 "success": False,
                 "scenario": scenario,
                 "error": str(e),
                 "video_path": self.video_path
             }
+            print("===RESULT_JSON===")
             print(json.dumps(result))
             return result
 
