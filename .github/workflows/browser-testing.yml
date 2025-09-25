@@ -62,7 +62,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CROSS_REPO_TOKEN || secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          HEADLESS: "true"
+          HEADLESS: "false"
           TIMEOUT: "300"
           TARGET_REPO: ${{ github.event.inputs.target_repo || 'Caleb-Hurst/First-Workflow' }}
         run: |
