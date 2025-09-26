@@ -115,7 +115,7 @@ async function executeBrowserTest(testScenario) {
       cwd: BROWSER_AGENT_PATH,
       env: {
         ...process.env,
-        HEADLESS: "true", // Run in headless mode for CI
+        HEADLESS: "false", // Run in headless mode for CI
         TIMEOUT: "180",   // 3 minute timeout
         PATH: `${process.env.HOME}/.local/bin:${process.env.PATH}` // Ensure uv is in PATH
       }
